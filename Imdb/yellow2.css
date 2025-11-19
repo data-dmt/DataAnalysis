@@ -1,0 +1,148 @@
+/* Estilo general del documento */
+body {
+  font-size: 12px;
+  font-family: 'Roboto', sans-serif; /* Fuente más moderna */
+  line-height: 1.5;
+  color: #000000d3;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9; /* Fondo más suave */
+}
+
+/* Estilo para títulos */
+h1 {
+  font-size: 2.5em; /* Tamaño reducido para títulos largos */
+  font-weight: bold; /* Negrita para resaltar */
+  color: #000000; /* Negro elegante */
+  border-bottom: 3px solid #F5C518; /* Línea amarilla delgada */
+  padding-bottom: 10px; /* Espacio entre texto y línea */
+  margin-bottom: 25px; /* Separación del contenido */
+  text-align: center; /* Alineado centrado */
+  line-height: 1.2; /* Espaciado entre líneas ajustado */
+}
+
+h2 {
+  font-size: 1.9em;
+  color: #000000;
+  border-left: 10px solid #F5C518; /* Barra amarilla gruesa */
+  padding-left: 15px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  background-color: #ffffff; /* Fondo blanco sutil */
+  border-radius: 8px; /* Bordes redondeados */
+}
+
+h3 {
+  font-size: 1.75em;
+  color: #333333; /* Gris oscuro */
+  margin-top: 30px;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #F5C518; /* Línea amarilla debajo */
+  padding-bottom: 5px;
+}
+
+h4 {
+  font-size: 1.5em;
+  color: #F5C518;
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+
+/* Estilo para párrafos */
+p {
+  font-size: 1.2em;
+  margin: 15px 0;
+  text-align: justify;
+  color: #222222;
+}
+
+/* Estilo para listas */
+ul {
+  margin-left: 20px;
+  list-style-type: disc;
+}
+
+ol {
+  margin-left: 20px;
+  list-style-type: decimal;
+}
+
+/* Estilo para tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background-color: #ffffff;
+}
+
+table th, table td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+table th {
+  background-color: #F5C518;
+  color: #000000;
+}
+
+table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Estilo para código */
+code {
+  background-color: #000000;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  color: #F5C518;
+}
+
+pre {
+  background-color: #000000;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: 'Courier New', monospace;
+  color: #F5C518;
+  overflow-x: auto;
+}
+
+/* Estilo para enlaces */
+a {
+  color: #FFC400; /* Amarillo legible */
+  font-weight: bold; 
+  text-decoration: none;
+}
+
+a:hover {
+  color: #000000; /* Negro en hover */
+  text-decoration: underline;
+}
+
+/* Estilo para bloques de cita */
+blockquote {
+  margin: 20px;
+  padding: 10px 20px;
+  background-color: #f9f9f9;
+  border-left: 5px solid #F5C518;
+  font-style: italic;
+  color: #555555;
+}
+
+/* Personalización de los márgenes del documento */
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.graphic-container {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

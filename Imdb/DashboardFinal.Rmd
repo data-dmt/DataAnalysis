@@ -1,0 +1,612 @@
+---
+title: "Análisis del top 250 películas mejor valoradas en IMDB"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+library(MASS)
+library(shinydashboard)
+library(datasets)
+library(highcharter) 
+library(fpp3)
+library(RColorBrewer)
+library(openxlsx)  
+library(leaflet)  
+library(geojsonio)
+library(plotly)
+library(ggplot2)
+library(tidyverse)
+pdf(file = NULL)
+```
+
+```{r,echo=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  cache=FALSE,
+  echo=FALSE
+)
+```
+
+```{r}
+select <- dplyr::select
+mutate <- dplyr::mutate
+filter <- dplyr::filter
+group_by <- dplyr::group_by
+summarise <- dplyr::summarise
+selectInput <- shiny::selectInput
+```
+
+
+```{r} 
+
+imdb <- as_tibble(read_csv("movies_updated.csv"))
+
+geoj <- geojson_read('https://ctim.es/AEDV/data/geo_countries.geojson',  what = "sp")
+geoj.tb <- geoj %>% as_tibble()
+
+pca <- imdb %>%
+  na.omit() %>%
+  select(country, rating, budget, box_office, run_time_min) %>%
+  group_by(country) %>%
+  summarise(
+    rating = mean(rating),
+    budget = mean(budget),
+    box_office = mean(box_office),
+    run_time_min = mean(run_time_min),
+  ) %>%
+  column_to_rownames(var="country") %>%
+  prcomp(scale = TRUE)
+
+
+```
+
+
+General
+=======================================================================
+
+
+```{r}
+
+shiny::renderUI({
+  div(
+    tags$h1("Análisis del top 250 películas de IMDb", style = "font-size: 36px; font-weight: bold; text-align: center; margin-bottom: 20px;"),
+    tags$p("", style = "font-size: 14px; margin-bottom: 30px; text-align: center;"),
+    tags$h2("Información detallada ", style = "font-size: 24px; font-weight: bold; margin-bottom: 20px;text-align: center;"),
+    tags$p("Este proyecto tiene como objetivo realizar un análisis exhaustivo del Top 250 de IMDb, basado en una base de datos que integra todos estos aspectos clave. Este es el cuadro de mandos complementario diseñado para facilitar el análisis, la visualización y la interpretación de nuestros datos a través de los indicadores clave.", style = "font-size: 16px; margin-bottom: 20px; text-align: center;"),
+    div(
+      style = "display: flex; justify-content: space-around; margin-bottom: 20px;",
+      div(
+        style = "border: 2px solid #006899; border-radius: 10px; padding: 20px; width: 45%;",
+        tags$h3("Estructura", style = "font-size: 20px; font-weight: bold; margin-bottom: 10px; text-align: center;"),
+        tags$p("Dividido en varias secciones funcionales, cada una diseñada para abordar aspectos específicos del análisis de datos realizado.", style = "font-size: 14px; margin-bottom: 10px; text-align: center;"),
+      ),
+      div(
+        style = "border: 2px solid #006899; border-radius: 10px; padding: 20px; width: 45%;",
+        tags$h3("Base de datos", style = " font-size: 20px; font-weight: bold; margin-bottom: 10px; text-align: center;"),
+        tags$p("Conjunto de datos de Kaggle, construido específicamente para ofrecer información estructurada sobre el top de IMDb, calificado con una puntuación perfecta de 10.0 en usabilidad y modificado para ser más completo.", style = "font-size: 14px; margin-bottom: 10px; text-align: center;"),
+      )
+      
+    )
+  )
+})
+
+```
+
+
+
+
+Diagrama de dispersión
+=======================================================================
+
+
+Column {.sidebar data-width=230}
+--------------------------------------------------
+
+```{r}
+
+selectInput(
+  "x", 
+  label = "Indicador 1:",
+  choices = c("budget", "box_office", "run_time_min"), 
+  selected = "budget"
+)
+
+selectInput(
+  "x_scale", 
+  label = "Escala indicador 1:",
+  choices = c("none",
+              "sqrt",    
+              "log"
+             ), 
+  selected = "none"
+)
+
+selectInput(
+  "y", 
+  label = "Indicador 2:",
+  choices = c("budget", "box_office", "run_time_min"), 
+  selected = "box_office"
+)
+
+selectInput(
+  "y_scale", 
+  label = "Escala indicador 2:",
+  choices = c("none",
+              "log",
+              "boxcox"
+             ), 
+  selected = "none"
+)
+```
+
+
+```{r}
+
+inputs.processing <- reactive( {
+  tb <- tibble(
+      country = imdb$country,
+      x = imdb[[input$x]],
+      y = imdb[[input$y]]
+    )  %>% 
+    na.omit()
+  
+  if(input$x_scale=="sqrt") tb$x <- sqrt(tb$x)
+  if(input$x_scale=="log") tb$x <- log(tb$x)  
+  if(input$y_scale=="log") tb$y <- log(tb$y)  
+  lambda <- 1  
+  if(input$y_scale=="boxcox"){
+    bc <- MASS::boxcox (y ~ x,data=tb) # Cálculo óptimo modelo Box-Cox 
+    lambda <- round(bc $ x [which.max (bc $ y)],digits=4)
+    if(lambda!=0){
+      tb$y <- tb$y^lambda/lambda
+    } else {
+      tb$y <- log(tb$y)
+    }
+  }
+  
+  fit <- lm(y ~ x,data=tb)
+  return(list(tb,fit,lambda))
+})
+``` 
+
+### 
+
+```{r}
+
+shiny::renderUI({
+  
+  tb <- inputs.processing()[[1]]
+  fit <- inputs.processing()[[2]]
+  lambda <- inputs.processing()[[3]]
+  
+  text <- 
+  paste(
+    "<strong>ANÁLISIS DE REGRESIÓN LINEAL</strong> <br>",
+    "<strong>fórmula:   y=ax+b </strong><br>",
+    "<strong>x:</strong> indicador 1 escalado<br>",
+    "<strong>y:</strong> indicador 2 escalado<br>",
+    "<strong><br>RESULTADOS</strong><br>",
+    "<strong>correlación:</strong>",round(cor(tb$x,tb$y),digits = 4),
+    "<br><strong>pendiente (a):</strong>",formatC(fit$coefficients[2], format = "e", digits = 2),
+    "<br><strong>independiente (b):</strong>",formatC(fit$coefficients[1], format = "e", digits = 2)
+  )
+  if(input$y_scale=="boxcox"){
+    text <- paste(text,"<br><strong> lambda (box-cox) :</strong>",formatC(lambda, format = "e", digits = 2))
+  } 
+      
+  HTML(text)
+})
+```
+
+
+Column
+--------------------------------------------------
+
+### Comparación de indicadores escalados
+
+```{r} 
+
+
+renderPlotly({
+  
+  tb <- inputs.processing()[[1]]
+  
+  tb %>%
+    ggplot(aes(x,y,label=country)) + 
+    geom_point() +
+    theme(legend.position = "none") +
+    labs(x= input$x, y= input$y) +
+    geom_smooth(method = lm, se = FALSE) 
+  
+})
+```
+
+
+
+
+
+Series temporales
+=======================================================================
+
+
+Column
+--------------------------------------------------
+
+
+###  
+
+
+```{r} 
+
+
+
+imdb.budget.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.budget = mean(na.omit(budget))) %>%
+  as_tsibble(index=year)
+
+renderPlotly({
+  budget_plot <- imdb.budget.ts %>%
+  ggplot(aes(x = year, y = avg.budget / 1000000)) +
+  geom_line(color = "#EE2C2C", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Presupuesto:", scales::comma(avg.budget / 1000000, accuracy = 0.1), "M")), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Presupuesto Top 250 IMDb",
+    subtitle = "Promedio del presupuesto por año (en millones)",
+    x = "Año",
+    y = "Presupuesto medio (millones)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 10)
+  )
+ggplotly(budget_plot, tooltip = "text")
+})
+
+```
+
+###
+
+```{r} 
+
+imdb.boxoffice.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.boxoffice = mean(na.omit(box_office))) %>%
+  as_tsibble(index=year)
+
+renderPlotly({
+  boxoffice_plot <- imdb.boxoffice.ts %>%
+  ggplot(aes(x = year, y = avg.boxoffice / 1000000)) +
+  geom_line(color = "#2ca02c", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Recaudación:", scales::comma(avg.boxoffice / 1000000, accuracy = 0.1), "M")), size = 0.01, alpha = 0) +
+  labs(
+    title = "Recaudaciones Top 250 IMDb",
+    subtitle = "Promedio de recaudaciones por año (en millones)",
+    x = "Año",
+    y = "Recaudación media (millones)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 10)
+  )
+ggplotly(boxoffice_plot, tooltip = "text")
+
+})
+```
+
+
+
+Column
+--------------------------------------------------
+
+
+### 
+
+
+```{r} 
+
+imdb.rating.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.rating = mean(na.omit(rating))) %>%
+  as_tsibble(index=year)
+
+renderPlotly({
+  rating_plot <- imdb.rating.ts %>%
+  ggplot(aes(x = year, y = avg.rating)) +
+  geom_line(color = "#FFCC00", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Puntuación media:", round(avg.rating, 2))), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Valoraciones Top 250 IMDb",
+    subtitle = "Promedio de valoraciones por año",
+    x = "Año",
+    y = "Puntuación media"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 10)
+  )
+ggplotly(rating_plot, tooltip = "text")
+})
+
+```
+
+###
+
+```{r} 
+
+
+imdb.runtime.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.runtime.min = mean(na.omit(run_time_min))) %>%
+  as_tsibble(index=year)
+
+renderPlotly({
+  runtime_plot <- imdb.runtime.ts %>%
+  ggplot(aes(x = year, y = avg.runtime.min)) +
+  geom_line(color = "#ff7f0e", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Duración:", round(avg.runtime.min, 1), "min")), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Duración media Top 250 IMDb",
+    subtitle = "Media de duración de películas por año",
+    x = "Año",
+    y = "Duración media (min)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 10)
+  )
+ggplotly(runtime_plot, tooltip = "text")
+})
+
+```
+
+
+
+Mapas coropléticos
+=======================================================================
+
+
+
+Column {.sidebar data-width=250}
+--------------------------------------------------
+
+```{r}
+
+selectInput(
+  "indicator", 
+  label = "Indicador:",
+  choices = imdb %>% 
+            dplyr::select(rating, box_office, budget) %>% 
+            colnames(),
+  selected = "box_office"
+)
+
+```
+
+
+```{r}
+
+inputs.processing2 <- reactive({
+  tb <- imdb %>% 
+  dplyr::select(
+    ISO_A3, 
+    country=country,
+    value = input$indicator
+  ) %>%
+  na.omit() %>%
+  arrange(desc(value)) 
+  
+  return(tb)
+  
+})
+```
+
+### 
+
+```{r}
+
+renderTable({
+  imdb.filtered <- inputs.processing2()
+ imdb.filtered %>% 
+   group_by(country) %>%
+   summarise(value = round(mean(value),2)) %>%
+   arrange(desc(value))
+})
+
+```
+
+
+
+Column
+--------------------------------------------------
+
+### 
+
+```{r} 
+
+leaflet::renderLeaflet({
+ imdb.filtered <- inputs.processing2() 
+ 
+ imdb.filtered <- imdb.filtered %>% 
+   group_by(country) %>%
+   summarise(value = round(mean(value),2),
+             ISO_A3 = last(ISO_A3))
+ 
+ join <- geoj.tb %>% 
+   left_join(imdb.filtered, by = c("ISO_A3"))
+
+ etiquetas <- paste(
+  "<strong>", join$ADMIN, 
+  "</strong><br>", join$value
+) %>%
+  lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlOrRd", domain = join$value, na.color = "#BDBDBD")
+
+geoj %>%
+  leaflet() %>%
+  setView(lng = 5, lat = 22, zoom = 1) %>%
+  addPolygons(
+    fillColor = ~pal(join$value),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = rgb(0.2, 0.2, 0.2),
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE
+    ),
+    label = etiquetas
+  )
+
+})
+```
+
+
+
+
+
+Descomposición STL
+=======================================================================
+
+Column {.sidebar data-width=230}
+--------------------------------------------------
+
+```{r}
+
+selectInput(
+  "indicador2", 
+  label = "Indicador:",
+  choices = c("budget", "box_office", "run_time_min", "rating"), 
+  selected = "budget"
+)
+  
+```
+
+###
+
+```{r}
+
+renderTable({
+  tb1 <- read_csv("movies_updated.csv") %>% 
+    filter(year >= 1970) %>% 
+    group_by(year)%>%
+    summarise(avg = round(mean(na.omit(get(input$indicador2))),2))%>%
+    mutate(year = as.integer(year))
+  tb1 
+  })
+
+```
+
+
+Column
+--------------------------------------------------
+
+### Descomposición STL de indicadores
+
+```{r}
+
+renderPlotly({ tb1 <- read_csv("movies_updated.csv") %>%
+  filter(year >= 1970) %>%
+  group_by(year) %>%
+  summarise(avg = mean(na.omit(get(input$indicador2)))) %>%
+  as_tsibble(index = year) 
+
+tb1_ts_STL <- tb1 %>%
+  model(STL(avg ~ trend(window = 7) + season(window = "periodic"), robust = TRUE)) %>%
+  components() 
+
+indicador <- input$indicador2 
+titulo <- paste("Descomposición de la media de", indicador) 
+subtitulo <- paste("Componente estacional, tendencia y residual para", indicador) 
+ylabel <- paste("Media de", indicador, "en millones")
+
+autoplot(tb1_ts_STL) +
+  labs(title = titulo,
+       subtitle = subtitulo,
+       x = "Año",
+       y = ylabel) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14), plot.subtitle = element_text(hjust = 0.5, size = 10, color = "#808080"), axis.title = element_text(size = 12)) 
+})
+
+```
+
+
+
+
+
+Análisis de atributos
+=======================================================================
+
+
+Row 
+-------------------------------------
+### Matriz de correlación 
+
+```{r,fig.asp=1.1}
+
+highcharter::renderHighchart({
+  imdb %>%
+  na.omit() %>%
+  select(rating, budget, box_office, run_time_min) %>%
+  cor(use='complete.obs') %>%
+  hchart()
+ 
+})
+```   
+ 
+
+
+### Porcentaje de varianza explicada por la componentes principales
+    
+```{r}
+
+renderPlotly({
+ p <- tibble(
+   label=fct_inorder(paste("PC",1:length(pca$sdev))),
+   varPercent = pca$sdev^2/sum(pca$sdev^2) * 100
+  ) %>%
+  ggplot(aes(x=label,y=varPercent)) +
+  geom_bar(stat = "identity") +
+  labs(x= "Componentes Principales",y= "Porcentaje varianza explicada") +
+  geom_text(aes(label=paste0(round(varPercent,digits = 1),"%")),size=3,colour = "blue",nudge_y = 1.) 
+
+ggplotly(p)
+
+})
+
+```
+
+
+Row 
+-------------------------------------
+   
+   
+### Gráfico de dispersión con las dos primeras componentes
+    
+```{r}
+highcharter::renderHighchart({
+  hchart(pca,choices = c(1,2))
+  
+})
+```
+
+
+
+
+

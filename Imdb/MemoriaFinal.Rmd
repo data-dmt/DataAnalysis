@@ -1,0 +1,1313 @@
+---
+title: "Análisis de las películas mejor valoradas en IMDb"
+output:
+  html_document:
+    css: yellow2.css
+---
+
+Diego Muñoz Torres
+<br>
+Fecha última actualización: `r format(Sys.Date(), '%Y-%m-%d')`
+
+```{r,echo=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE
+)
+```
+
+```{r, echo = FALSE,message = FALSE,warning = FALSE}
+if (!require(openxlsx)) install.packages('openxlsx') 
+library(openxlsx)
+if (!require(pxR)) install.packages('pxR') 
+library(pxR)
+if (!require(tidyverse)) install.packages('tidyverse') 
+library(tidyverse)
+if (!require(wordcloud)) install.packages('wordcloud') 
+library(wordcloud)
+if (!require(ggplot2)) install.packages('ggplot2') 
+library(ggplot2)
+if (!require(plotly)) install.packages('plotly') 
+library(plotly)
+if (!require(tsibble)) install.packages('tsibble') 
+library(tsibble)
+if (!require(feasts)) install.packages('feasts') 
+library(feasts)
+if (!require(fable)) install.packages('fable') 
+library(fable)
+if (!require(urca)) install.packages('urca') 
+library(urca)
+if (!require(geojsonio)) install.packages('geojsonio') 
+library(geojsonio)
+if (!require(leaflet)) install.packages('leaflet') 
+library(leaflet)
+if (!require(paletteer)) install.packages('paletteer') 
+library(paletteer)
+if (!require(ggthemes)) install.packages('ggthemes') 
+library(ggthemes)
+if (!require(highcharter)) install.packages('highcharter') 
+library(highcharter)
+
+```
+
+
+[Enlace al cuadro de mandos](http://10.22.143.222:3838/sample-apps/a2535/DashboardFinal.Rmd)
+
+
+<div>
+<p style = 'text-align:center;'>
+<img src="https://sprcdn-assets.sprinklr.com/674/8b955864-7307-4d41-8ded-c194170f5305-2729152590.jpg" alt="JuveYell" width="1000px">
+</p>
+</div>
+
+
+
+## Estado actual y objetivos
+
+  El cine sigue siendo una de las industrias de entretenimiento más potentes a nivel mundial, a pesar de los cambios tecnológicos y la transformación en los hábitos de consumo. En los últimos años, el modelo de negocio cinematográfico ha experimentado una significativa evolución debido al auge de las plataformas de streaming como Netflix, Amazon Prime, y Disney+, que han redefinido la manera en que los espectadores acceden y consumen contenido. Aunque las salas de cine han perdido algo de su relevancia frente a este nuevo paradigma, el mercado del cine sigue siendo altamente rentable, con ingresos millonarios generados tanto por las plataformas digitales como por la distribución en cines y otros medios.
+
+  En este contexto, la clasificación del Top 250 de películas de [IMDb](https://www.imdb.com/) se mantiene como un referente clave para evaluar el impacto de las películas a nivel global, ya que no solo refleja la valoración de los usuarios en términos de calidad, sino que también abarca datos cruciales como el presupuesto de la producción, la recaudación en taquilla, la duración, los géneros, y los países de origen. Esta información proporciona una visión completa de lo que hace que una película sea exitosa no solo en términos de crítica, sino también en su capacidad para generar ingresos y atraer al público.
+
+  Este proyecto tiene como objetivo realizar un análisis exhaustivo del Top 250 de IMDb, basado en una base de datos que integra todos estos aspectos clave. La motivación radica en entender los factores que influyen en el éxito de las películas a nivel global, particularmente en el contexto de un mercado cinematográfico que sigue creciendo, aunque ha cambiado en su forma de distribución y consumo. Además, mi interés se vio impulsado por mi propia pasión por el cine, buscando no solo descubrir películas que quizás desconocía, sino también explorar el trabajo de actores y directores de diferentes épocas, ya que el Top 250 abarca títulos desde 1921 hasta 2022. Esta diversidad me ha motivado a conocer más sobre el cine clásico y moderno, y a comprender cómo han evolucionado las tendencias y los estilos cinematográficos a lo largo del tiempo.
+
+  El análisis tiene como objetivos específicos:
+
+1. <b>Explorar la relación entre el presupuesto y la recaudación</b>, para identificar patrones de rentabilidad en las películas más valoradas. Esto permitirá comprender si existe una correlación clara entre el dinero invertido en la producción y el rendimiento en taquilla, considerando también la influencia de las plataformas de streaming en la distribución y visibilidad de las películas.
+
+2. <b>Analizar la influencia de los géneros y las naciones de producción en la posición de las películas dentro del ranking</b>. Se estudiará cómo ciertos géneros cinematográficos o la procedencia de las películas (por ejemplo, Hollywood vs. cine internacional) impactan en su popularidad y valoración por parte del público.
+
+3. <b>Establecer conexiones entre los equipos creativos y el éxito de las películas</b>, observando la repercusión de directores y actores reconocidos, y cómo su participación en una producción puede influir en la recepción crítica y popular.
+
+  Este proyecto pretende ofrecer un análisis detallado de los factores que contribuyen al éxito de las películas más valoradas de IMDb, proporcionando una visión clara de las dinámicas del mercado cinematográfico actual, y cómo las películas pueden maximizar su potencial tanto a nivel artístico como comercial en un entorno cada vez más digitalizado.
+
+
+
+<br>
+<br>
+<br>
+<h2>Aportaciones</h2>
+
+El estudio aporta un valor significativo a diversos ámbitos de nuestro entorno socioeconómico, técnico y científico. Este proyecto no solo permite analizar patrones en la industria cinematográfica global, sino que también contribuye a abordar objetivos relacionados con el desarrollo sostenible y la creación de conocimiento. A continuación, se detallan las principales aportaciones:
+
+
+
+<h3>Industria cinematográfica y economía creativa</h3>
+
+La industria cinematográfica es un pilar fundamental en la economía global, generando empleo directo e indirecto en sectores como producción audiovisual, distribución, turismo y comercio. Al estudiar las características de las películas más exitosas y reconocidas, el proyecto puede ayudar a identificar los factores que contribuyen al éxito económico y crítico de estas obras, desde sus inversiones iniciales hasta su recaudación en taquilla.
+
+Este análisis tiene aplicaciones prácticas en la toma de decisiones de los profesionales del sector, facilitando estrategias más sostenibles en términos de presupuestos y consumo de recursos. Asimismo, puede inspirar políticas públicas que promuevan el desarrollo de la economía creativa, fomentando el talento local y las colaboraciones internacionales en la producción de contenidos.
+
+
+
+<br>
+<h3>Promoción de la diversidad cultural y educación</h3>
+
+Las películas incluidas en el Top 250 de IMDb provienen de distintos países, culturas y perspectivas, lo que ofrece una oportunidad para promover el diálogo intercultural. La diversidad cultural es un elemento clave en la [Agenda 2030 para el Desarrollo Sostenible](https://www.mdsocialesa2030.gob.es/agenda2030/index.htm)
+, en particular en el ODS 4 (Educación de calidad) y el ODS 16 (Paz, justicia e instituciones sólidas), que destacan la importancia de la inclusión y el acceso a contenidos que enriquezcan el aprendizaje y el entendimiento global.
+
+Este proyecto proporciona herramientas analíticas que permiten estudiar la representación de diferentes culturas, géneros y narrativas en el cine. Esto puede fomentar una reflexión crítica sobre cómo el cine influye en la percepción global de temas como derechos humanos, igualdad de género (ODS 5) o cambio climático (ODS 13), contribuyendo a una sociedad más informada y consciente.
+
+
+
+<br>
+<h3>Impacto en el turismo cinematográfico</h3>
+
+La producción de películas puede tener un impacto directo en el turismo de las localizaciones donde se filman. El turismo cinematográfico es un fenómeno en auge, con destinos como Nueva Zelanda, Reino Unido y España experimentando incrementos significativos en visitantes gracias a películas y series populares. Este proyecto permite estudiar la relación entre el éxito de una película y el crecimiento del turismo en las regiones donde se rodó, contribuyendo a estrategias sostenibles para el desarrollo económico local (ODS 8: Trabajo decente y crecimiento económico).
+
+
+
+<br>
+<h3>Relación con los Objetivos de Desarrollo Sostenible (ODS)</h3>
+
+En resumen, el proyecto está alineado con varios Objetivos de Desarrollo Sostenible:
+
+1. **ODS 4** (Educación de calidad): Fomenta el análisis crítico de las narrativas culturales y su impacto educativo.
+2. **ODS 5** (Igualdad de género): Analiza la representación de género en el cine, promoviendo la equidad.
+3. **ODS 8** (Trabajo decente y crecimiento económico): Identifica factores que potencian la economía creativa y el turismo sostenible.
+4. **ODS 9** (Industria, innovación e infraestructura): Impulsa el uso de tecnologías avanzadas en análisis de datos.
+5. **ODS 13** (Acción por el clima): Promueve narrativas que sensibilizan sobre el cambio climático y otros retos globales.
+6. **ODS 16** (Paz, justicia e instituciones sólidas): Contribuye al entendimiento global a través del cine.
+
+
+Por estas razones, el presente proyecto no solo se posiciona como una herramienta analítica valiosa para la industria del cine, sino que también tiene implicaciones más amplias para el desarrollo sostenible y el progreso socioeconómico en general.
+
+
+
+<br>
+<br>
+<br>
+<h2>Fuentes de los Datos Utilizados y Análisis de su Fiabilidad</h2>
+
+Los datos utilizados en este proyecto provienen de una base de datos alojada en [Kaggle](https://www.kaggle.com/datasets/rajugc/imdb-top-250-movies-dataset), basada directamente en el Top 250 de películas de IMDb. Esto asegura que la información proviene de una fuente ampliamente reconocida en la industria cinematográfica. IMDb (Internet Movie Database) es considerada una de las referencias más fiables y completas sobre cine y entretenimiento, gracias a su extensa base de datos mantenida por expertos, comunidades de usuarios y actualizaciones constantes realizadas por profesionales de la industria.
+
+El conjunto de datos de Kaggle, construido específicamente para ofrecer información estructurada sobre el top anteriormente mencionado, ha sido calificado con una puntuación perfecta de 10.0 en usabilidad. Esto garantiza que los datos están organizados y documentados de manera clara, lo que minimiza errores en el análisis y facilita la interpretación. Además, al estar basado directamente en el ranking oficial de IMDb, los datos reflejan con precisión características como calificaciones de usuarios, información técnica de las películas (duración, presupuesto, recaudación, etc.) y datos contextuales como los países de producción y el equipo creativo.
+
+Por tanto, trabajar con esta base de datos asegura la alta fiabilidad del análisis y proporciona una base sólida para realizar el análisis deseado.
+
+
+
+
+<br>
+<br>
+<br>
+<h2>Análisis exploratorio inicial</h2>
+
+<h3>Descripción del contenido y organización de los datos</h3>
+
+El conjunto de datos inicial contiene 13 columnas y 250 filas, correspondientes al Top 250 de películas de IMDb. De las 13 variables, 8 son categóricas y 5 son numéricas.
+
+Por un lado, el conjunto de las variables categóricas está compuesto por:
+<br>- **name**: títulos de las películas incluidas en el ranking.
+<br>- **genre**: géneros predominantes de cada largometraje, con la posibilidad de tener hasta tres géneros por película.
+<br>- **certificate**: clasificación por edades asignada a cada película.
+<br>- **run_time**: duración de las películas expresada en horas y minutos.
+<br>- **tagline**: eslogan publicitario característico de cada producción.
+<br>- **casts**: lista de los actores principales que componen el elenco de la película.
+<br>- **directors**: nombre del director o directores responsables de la obra.
+<br>- **writers**: guionistas que contribuyeron al desarrollo de la narrativa.
+
+Por otro lado, las variables numéricas son las siguientes:
+<br>- **rank**: posición de cada película en el ranking, desde 1 hasta 250.
+<br>- **year**: año de lanzamiento, con películas que abarcan desde 1921 hasta 2022.
+<br>- **rating**: puntuación promedio basada en las valoraciones de los usuarios, con un rango de 8.0 a 9.3.
+<br>- **budget**: presupuesto de producción de cada película, desde 50.000 hasta 356.000.000 dólares.
+<br>- **box_office**: recaudación obtenida, con valores que oscilan entre 20.000 y 2.798.000.000 dólares.
+
+
+<br>
+<h3>Incidencias detectadas</h3>
+
+Una de las principales incidencias detectadas en el conjunto de datos es la **ausencia de valores** en columnas críticas para un análisis exhaustivo. Por ejemplo, la columna budget, que representa el presupuesto de cada película, carece de un 16% de los valores. Esto limita la capacidad de realizar estudios completos sobre la inversión económica en las producciones, dificultando la identificación de tendencias relacionadas con el gasto en la industria cinematográfica. De manera similar, la columna box_office, que detalla los ingresos obtenidos en taquilla, presenta un 12% de datos no disponibles. La ausencia de esta información obstaculiza el análisis de la rentabilidad de las películas, un aspecto fundamental para entender el éxito financiero y su impacto en la industria creativa.
+
+Otro problema identificado es el **formato inconsistente** de algunos datos. La columna run_time, que refleja la duración de las películas, utiliza un formato mixto que combina números seguidos de letras (h para horas y m para minutos). Este diseño, aunque descriptivo, dificulta los cálculos y comparaciones directas entre los datos. Para facilitar su manejo, sería necesario transformar esta columna a un formato puramente numérico que permita realizar análisis estadísticos más precisos, como promedios o distribuciones.
+
+Por último, se ha detectado la **ausencia de variables** cruciales que enriquecerían el análisis. El conjunto de datos no incluye referencias geográficas, como los códigos ISO de los países de producción, lo que dificulta situar las películas en un contexto regional. Esta falta de datos limita las posibilidades de combinar este conjunto con otras bases de datos para realizar análisis más detallados, como correlaciones entre la industria cinematográfica y las condiciones socioeconómicas de los países productores. Además, variables socioeconómicas, como la población y el PIB de los países, están ausentes, lo que impide evaluar la inversión cinematográfica en función de la capacidad económica de cada región. La incorporación de estos datos sería de gran utilidad para establecer relaciones significativas entre la industria creativa y los contextos económicos globales.
+
+
+
+
+
+<br>
+<br>
+<br>
+<h2>Identificación de los requisitos de procesamiento</h2>
+
+Tras identificar las incidencias en los datos iniciales, se han planteado diversas acciones necesarias para ajustar y enriquecer el conjunto de datos, con el objetivo de facilitar el análisis deseado. A continuación, se detallan los pasos específicos de procesamiento que se llevaron a cabo, los atributos nuevos incorporados y las herramientas empleadas para asegurar la integridad del estudio.
+
+
+
+<h3>Obtención de datos ausentes</h3>
+
+Para cubrir los valores faltantes en las columnas relacionadas con los presupuestos (budget) y las recaudaciones en taquilla (box_office), se recurrió a fuentes confiables como [Numbers.com](https://www.the-numbers.com) y [BoxOfficeMojo.com](https://www.boxofficemojo.com/?ref_=bo_nb_tt_mojologo). La información obtenida de estos sitios se introdujo manualmente en la base de datos original, asegurando su correspondencia con las películas listadas. Este paso permitió completar los registros para un análisis más robusto sobre la rentabilidad y el impacto económico de las producciones cinematográficas.
+
+
+
+<br>
+<h3>Estandarización del formato de los datos</h3>
+
+Un problema significativo identificado fue la inconsistencia en el formato de la columna run_time, que presentaba duraciones mezclando horas y minutos con un formato textual (por ejemplo, “2h 30m”). Para resolver esto, se creó una nueva columna, run_time_min, que expresa la duración total de las películas en minutos como un valor numérico. Este proceso se realizó mediante un bucle de conversión, multiplicando las cifras asociadas a las horas por 60 y sumándolas a los valores representativos de minutos. Este formato uniforme permite realizar cálculos y comparaciones de manera eficiente.
+
+
+
+<br>
+<h3>Incorporación de nuevas variables para el análisis</h3>
+
+Se añadieron varias variables al conjunto de datos para enriquecer las posibilidades de análisis:
+<br>- **country**: variable categórica que indica el país en el que tuvo lugar la mayor parte de la producción de cada película. Para determinar esta información, se optó por seleccionar el país más representativo en casos donde existieran múltiples ubicaciones de producción.
+<br>- **ISO_A3**: código categórico de tres letras que identifica de manera única a cada país, facilitando su uso en análisis geoespaciales y combinaciones con bases de datos externas.
+<br>- **run_time_min**: variable numérica que modifica el tiempo total de cada producción con el fin de estar expresados únicamente en minutos.
+<br>- **country_population**: variable numérica que indica población total del país de producción, obtenida de [Wordometer](https://www.worldometers.info/world-population/population-by-country/), sitio web de referencia que proporciona contadores y estadísticas en tiempo real para diversos temas. Sin embargo, trabajamos con los valores redondeados para cada una de las poblaciones. 
+<br>- **gdp**: variable numérica que define el Producto Interno Bruto absoluto del país, utilizado para analizar la relación entre la inversión cinematográfica y la capacidad económica de cada región.
+
+
+
+<br>
+<h3>Integración de datos geográficos</h3>
+
+Para representar gráficamente los países en mapas interactivos, se utilizó una base de datos en formato geojson obtenida de [DataHub](https://datahub.io/core/geo-countries#data). Esta base de datos contiene información geométrica sobre los bordes de los países, representados mediante polígonos. Durante la exploración de este conjunto de datos, se transformó temporalmente a un formato tabular para analizar los campos disponibles, como los nombres y códigos de los países. Posteriormente, los datos geométricos fueron restaurados para la visualización interactiva.
+
+
+
+<br>
+<h3>Herramientas y metodología</h3>
+
+El procesamiento de los datos y la generación de gráficos se realizaron utilizando RStudio, una herramienta integral para análisis estadístico y visualización de datos. Entre las características destacadas de RStudio utilizadas en este proyecto están:
+
+1. <b>Manejo y limpieza de datos</b>: Gracias a paquetes como dplyr y tidyr, se ejecutaron transformaciones complejas de datos, incluyendo la conversión de formatos y la imputación de valores faltantes.
+2. <b>Visualización interactiva</b>: Se empleó la librería leaflet, que permite generar mapas interactivos donde se muestra información clave al interactuar con los países representados.
+3. <b>Análisis geoespacial</b>: Los datos en formato geojson fueron procesados para vincular atributos del conjunto principal con sus representaciones geográficas.
+
+Tras implementar estos procesos, la base de datos está preparada para analizar la relación entre las características cinematográficas y los contextos geográficos y económicos de las películas. Los atributos adicionales y la integración de datos geoespaciales permiten crear visualizaciones avanzadas, como mapas de calor interactivos, que ofrecen una perspectiva novedosa sobre la inversión y distribución del cine a nivel global.
+
+
+
+
+
+<br>
+<br>
+<h2>Análisis exploratorio detallado</h2>
+
+En primer lugar, a modo de introducción, realizaremos un diagrama de barras con visualización dinámica. Este gráfico dinámico ofrece una visión fascinante de cómo se distribuyen las películas más destacadas de IMDb a lo largo de más de un siglo. Abarcando desde 1921 hasta 2022, este análisis nos permite observar no solo cuáles han sido los periodos más prolíficos en la producción de cine destacado, sino también cómo los contextos históricos, tecnológicos y sociales han influido en la creación de películas que han marcado generaciones.
+
+
+```{r}
+
+imdb <- as_tibble(read_csv("movies_updated.csv")) 
+yellow_palette <- colorRampPalette(c("#FFFFCC", "#FFD700", "#FF8C00"))
+
+d.barras <- imdb %>%
+  group_by(name, year) %>%
+  summarize(frequency = n()) %>%
+  ggplot(aes(x = year, y = frequency, fill = name, 
+             text = paste("<b>Película:</b>", name,
+                          "<br><b>Año:</b>", year))) +
+  geom_bar(stat = "identity", color = "black", size = 0.05) +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 8), breaks = seq(0, 8, by = 1), expand = c(0, 0)) +
+  scale_x_continuous(breaks = seq(1925, max(imdb$year), by = 5)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_fill_manual(values = yellow_palette(250)) 
+
+
+ggplotly(d.barras, tooltip = "text")
+
+
+```
+
+Un hallazgo clave es la notable concentración de películas a partir de la década de 1990. Esto puede explicarse por varios factores, entre ellos, el crecimiento de la industria cinematográfica global, el acceso masivo a nuevas audiencias gracias a la distribución digital, y la diversificación de géneros que atraen a una variedad más amplia de espectadores. La consolidación de festivales internacionales como [Cannes](https://www.festival-cannes.com/en/), [Sundance](https://festival.sundance.org) y Berlín, también conocido como [Berlinale](https://www.berlinale.de/en/home.html) durante estas décadas también sirvió como plataforma para destacar producciones independientes que lograron colarse en el imaginario colectivo.
+
+Además, es importante destacar cómo ciertos años, como 1957 y 1975, brillan con intensidad dentro de periodos menos representados. Por ejemplo, 1957 es un reflejo del auge del cine clásico, donde la narrativa y el diálogo eran elementos predominantes, mientras que 1975 muestra los inicios del cine de "blockbusters" con *Jaws*, marcando el nacimiento de una nueva era comercial. La cantidad de películas destacadas en estos años podría ser vista como un indicador de cómo el arte y la innovación pueden prosperar incluso en un entorno menos saturado de producciones.
+
+El auge de los años 90 y posteriores también coincide con un mayor acceso de las audiencias a bases de datos como IMDb, lo que facilita la votación de una cantidad significativamente mayor de usuarios. Este detalle sugiere que las películas de épocas más recientes están más representadas en el top debido a una combinación de mérito y mayor exposición.
+
+El año más destacado es, sin duda, 1995, donde hasta 8 películas alcanzan entrar en nuestro top. Estas películas son: *Se7en*, protagonizada por Brad Pitt y Morgan Freeman; *The Usual Suspects*; *Toy Story*, el clásico de Pixar; *Braveheart*; *Heat*; *Casino*; *Before Sunrise*; y, una producción mucho más independiente como es *La haine*.
+
+
+
+<br>
+<h3>Películas por nota obtenida</h3>
+
+Nuestra base de datos se basa en la evaluación de usuarios y críticos en la plataforma IMDb por lo que esencial conocer la distribución de las notas en las que se basa. El siguiente diagrama de barras dinámico muestra el número de películas según la calificación total obtenida.
+
+El análisis de las calificaciones (8.0 a 9.3) revela cómo la calidad percibida es un concepto que abarca tanto la excelencia técnica como la conexión emocional e intelectual que las películas logran establecer con sus audiencias. Este rango de calificaciones no solo refleja las preferencias del público y la crítica, sino que también sirve como un indicador de cómo las películas logran trascender barreras culturales y temporales.
+
+
+```{r}
+
+nota_frecuencia <- imdb %>%
+  group_by(rating) %>%
+  summarise(frequency = n())
+
+p <- nota_frecuencia %>%
+  ggplot(aes(x = rating, y = frequency, fill = frequency, text= paste("<br><b>Puntuación: </b>", rating,
+                                                                      "<br><b>Nº de películas: </b>", frequency))) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = seq(0, max(nota_frecuencia$frequency), by = 10)) +
+  scale_x_continuous(breaks = seq(8.0, 9.3, by = 0.1)) +
+  scale_fill_gradient(low = "#FFD700", high = "#FF8C00") +
+  labs(
+    title = "Nº de películas por calificación obtenida",
+    x = "Calificación",
+    y = "Nº de películas"
+  ) +
+  theme_minimal()
+
+ggplotly(p, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "white",
+      font = list(size = 12)
+    )
+  )
+
+```
+
+Un punto interesante es la diferencia en la densidad de películas entre las calificaciones bajas del rango (8.0-8.4) y las más altas (8.5 en adelante). Aunque pueda parecer intuitivo, esto subraya la dificultad de mantener calificaciones altas en una plataforma tan diversa como IMDb, donde los gustos individuales juegan un papel crucial. La concentración de películas en los valores más altos podría interpretarse como una indicación de que estas obras no solo lograron la excelencia técnica, sino que también han conseguido resonar profundamente con un espectro amplio de espectadores.
+
+Por otro lado, las pocas películas en el extremo más bajo (8.0) sugieren un cuello de botella competitivo. Aunque muchas películas logran alcanzar esta calificación, solo unas pocas consiguen entrar al selecto grupo del top 250. Esto podría estar relacionado con la importancia de otros factores, como la cantidad total de votos, la permanencia en el tiempo y el impacto cultural.
+
+Ahora que conocemos tanto la distribuciones por año, como las distribuciones por nota, es interesante comenzar a desengranar qué otros factores influyen en el éxito de estas producciones.
+
+
+
+<br>
+<h3>Géneros por valoraciones en el top</h3>
+
+El diagrama de cajas (o boxplot) es una herramienta gráfica excelente para analizar la distribución y dispersión de un conjunto de datos. Por este motivo, para evaluar los géneros de las películas en el top y sus valoraciones es el óptimo.
+
+Es importante tener en consideración que una película puede poseer distintos géneros, por lo que habrá películas que estén representadas en varios géneros simultáneamente. Para evitar que esto ocurra, definimos el código para que tome, únicamente, el primer género que posea la película (considerando que es el más representativo).
+
+
+```{r}
+
+generos <- imdb %>%
+  mutate(genre = sapply(strsplit(as.character(genre), ","), `[`, 1)) %>%
+  group_by(genre) %>%
+  mutate(freq_genre = n()) %>%
+  ungroup() %>%
+  filter(freq_genre > 20)  
+
+p <- generos %>% 
+  ggplot(aes(x = genre, y = rating, fill = genre, label = name)) + 
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(aes(text = paste0(
+    "<b>Película:</b> ", name, "<br>",
+    "<b>Calificación:</b> ", rating
+  )), shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  theme(legend.position = "none") +
+  labs(
+    title = "Distribución de calificaciones en los géneros con mayor frecuencia",
+    x = "Género",
+    y = "Calificación"
+  )
+
+ggplotly(p, tooltip = "text")
+
+
+```
+
+En este contexto, el género "Drama" se destaca como el más representado, lo que puede explicarse por su versatilidad. El drama abarca temas universales como el amor, la pérdida, la lucha y el triunfo, lo que permite una conexión más profunda y emocional con el espectador.
+
+Sin embargo, el género "Crime" es especialmente fascinante porque, aunque tiene menos películas, presenta un intervalo de valores notablemente alto. Esto sugiere que las historias de crimen, cuando están bien ejecutadas, tienden a obtener calificaciones sobresalientes. Esto puede atribuirse a su capacidad para explorar dilemas éticos y morales complejos, así como para generar suspense e intriga. Ejemplos como *The Godfather* o *The Dark Knight* ilustran cómo el género puede combinar narrativas emocionantes con una profundidad psicológica que resuena en audiencias globales.
+
+El género "Action", por su parte, muestra una alta dispersión de valores, lo que indica que, aunque muchas películas de acción son populares, solo unas pocas logran alcanzar un nivel sobresaliente. Esto podría deberse a que el público y la crítica valoran la acción solo cuando va acompañada de una narrativa sólida y una buena dirección.
+
+Sorprendentemente, además de los géneros esperados como "Comedy" o "Adventure", el top también incluye géneros menos convencionales, como "Biography" y "Animation". Este hecho destaca cómo el público y la crítica valoran historias que ofrecen profundidad emocional y narrativas auténticas, incluso en formatos distintos. En el caso del género "Biography", la capacidad de retratar figuras históricas o contemporáneas con precisión y un enfoque humanizado parece resonar significativamente, como lo evidencian películas como *Schindler’s List* o *The Pianist* presentes en el top, aunque también pudimos ver recientemente el éxito de *Oppenheimer*. Por otro lado, "Animation" ha demostrado ser un medio poderoso para explorar temas universales, utilizando la creatividad visual para capturar la atención de audiencias de todas las edades. Obras como *The Lion King* y *Spirited Away* muestran cómo este género combina innovación técnica y narrativas conmovedoras, asegurando su lugar junto a producciones más convencionales. Esto demuestra que el éxito en el top no depende únicamente de géneros tradicionales, sino de la capacidad de cualquier obra para conectar emocionalmente y aportar un impacto duradero.
+
+
+
+<br>
+<h3>Directores con más de una película en el top</h3>
+
+Todas las películas están dirigadas por una persona, o grupo de personas, que dirige la filmación o rodaje, da instrucciones al equipo técnico y artístico, decide la colocación de las cámaras, supervisa el decorado y el vestuario, y todas aquellas funciones necesarias para llevar a buen término la producción. En esta gráfica, analizaremos qué directores tienen más de una película en el top y, por tanto, son los mayores productores de obras memorables. Para poder realizar el siguiente estudio debemos hacer uso de la variable categórica "directors" y generar la cuantitativa "películas" a través de la frecuencia de apariciones de estos en nuestra base de datos.
+
+
+```{r}
+
+directors_summary <- imdb %>%
+  group_by(directors) %>%
+  summarize(
+    peliculas = n(),
+    peliculas_lista = paste(name, collapse = "\n")
+  ) %>%
+  filter(peliculas > 1)
+
+p <- ggplot(directors_summary, aes(x = reorder(directors, peliculas), y = peliculas, fill = peliculas, 
+                                   text = paste("<b>Películas de:</b>", directors,
+                                                "<br>", peliculas_lista))) + 
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "#FFD700", high = "#FF8C00", name = "Películas") +  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Directores", y = "Número de Películas", title = "Número de películas por director en el top 250 de IMDb") +
+  scale_y_continuous(breaks = seq(0, 7, by = 1))
+
+ggplotly(p, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "white",
+      font = list(size = 12)
+    )
+  )
+
+```
+
+El papel del director en el éxito de una película no puede ser subestimado, y este análisis lo demuestra al destacar nombres como Akira Kurosawa, Christopher Nolan, Martin Scorsese, Stanley Kubrick y Steven Spielberg. Estos directores no solo tienen siete películas en el top, sino que también representan estilos y filosofías cinematográficas que han definido y transformado la industria.
+
+Por ejemplo, Akira Kurosawa es reconocido como un maestro de la narrativa visual y un innovador en la técnica del montaje, con películas como *Seven Samurai* que han influido en cineastas de todo el mundo. Christopher Nolan, por otro lado, ha redefinido el cine contemporáneo con su capacidad para combinar narrativas complejas y visuales impactantes, como en *Inception*.
+
+Es interesante observar cómo los estilos y géneros de estos directores varían ampliamente, lo que sugiere que no hay una única fórmula para el éxito. Mientras que Scorsese se centra en dramas intensos y narrativas criminales, Kubrick explora una amplia gama de géneros, desde la ciencia ficción hasta el horror, siempre con un enfoque experimental y provocador.
+
+
+
+<br>
+<h3>Actores con más de 3 apariciones en el top</h3>
+
+En esta ocasión, en lugar de analizar a los directores, vamos a analizar a las personas que dan vida a los protagonistas de nuestras ideas, los actores y las actrices. Con el fin de hacer una presentación visual clara, únicamente mostraremos a los intérpretes que aparezcan en más de tres obras, ya sea en papeles protagonistas o secundarios.
+
+Para este diagrama empleamos la variable categórica "casts", la cual procesamos para poder separar a los intérpretes y obtener los nombres de cada uno de los miembros del elenco por separado y la cuantitativa "apariciones" en las que almacenamos el número de participaciones de cada uno.
+
+
+
+```{r}
+
+actores <- imdb %>%
+  separate_rows(casts, sep = ",")
+
+actores_summary <- actores %>%
+  group_by(casts) %>%
+  summarize(
+    peliculas = n(),  
+    peliculas_lista = paste(unique(name), collapse = "<br>")  
+  ) %>%
+  filter(peliculas > 3) 
+
+p <- ggplot(actores_summary, aes(x = reorder(casts, peliculas), y = peliculas, fill = peliculas, 
+                                   text = paste("<b>Apariciones de:</b>", casts,
+                                                "<br>", peliculas_lista))) + 
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "#F9CBA8", high = "#F17950", name = "Películas") +  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Actores", y = "Número de apariciones", title = "Actores con más de 3 apariciones en el top 250 de IMDb") +
+  scale_y_continuous(breaks = seq(0, 9, by = 1))
+
+ggplotly(p, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "white",
+      font = list(size = 12)
+    )
+  )
+
+
+```
+
+
+Robert De Niro, con nueve apariciones, es un caso emblemático de cómo la consistencia y la capacidad de elegir papeles desafiantes pueden consolidar una carrera estelar. Sus colaboraciones con directores como Scorsese han dado lugar a algunas de las películas más icónicas del cine, lo que subraya la importancia de las relaciones creativas duraderas.
+
+Otros actores destacados, como Al Pacino y Tom Hanks, también ilustran cómo la versatilidad y la capacidad de conectar con el público son fundamentales para permanecer relevantes en el tiempo. Mientras que Pacino es conocido por su intensidad y su dominio de personajes complejos, Hanks es un maestro en interpretar personajes accesibles y entrañables.
+
+La diferencia en el número de apariciones entre actores como De Niro y otros en el top también pone de manifiesto la importancia de las oportunidades en la industria. Actores que han trabajado en múltiples películas de alto perfil tienen una mayor probabilidad de aparecer en rankings como este, lo que no necesariamente desmerece a otros actores igualmente talentosos que no han tenido la misma visibilidad.
+
+
+
+<br>
+<h3>Análisis de recaudaciones y presupuestos</h3>
+
+Un análisis detallado de la relación entre el presupuesto y la recaudación de las películas del top 250 nos proporciona una visión clara de los patrones de rentabilidad en el cine de calidad, como mencionamos en los principales objetivos del proyecto. Este estudio es crucial para entender cómo las inversiones financieras impactan el éxito económico de las producciones cinematográficas y, en algunos casos, su influencia en la percepción del público y la crítica.
+
+La herramienta principal empleada para este análisis es un diagrama de dispersión, donde cada punto representa una película, posicionada en función de su recaudación en taquilla (eje Y) y su presupuesto (eje X). Con el objetivo de identificar tendencias significativas, añadimos una variable categórica llamada "century" que divide las películas según su época de producción: siglo XX o siglo XXI. Este enfoque permite observar cómo han evolucionado las dinámicas económicas del cine a lo largo del tiempo. Además, para una mejor interpretación, las cifras se expresan en millones de dólares y los puntos están coloreados según el siglo correspondiente.
+
+
+```{r}
+
+imdb <- imdb %>%
+  mutate(century = ifelse(year <= 2000, 20, 21))
+
+d.dispersion <- imdb %>%
+  ggplot(aes(x= budget/1000000, y = box_office/1000000,
+             text= paste("<b>Película:</b> ", name,
+                         "<br><b>Recaudación:</b> ", box_office/1000000,
+                         "<br><b>Presupuesto:</b> ", budget/1000000),
+             colour = factor(century))) +
+  geom_point() +
+  labs(title = "Top 250 películas de IMDb por presupuesto y recaudación", 
+       x = "Presupuesto en millones", 
+       y = "Recaudación en millones",
+       color = "Siglo") +
+  scale_x_continuous(breaks = seq(0, 356000000, by = 50)) +
+  scale_y_continuous(breaks = seq(0, 2798000000, by = 500)) +
+  scale_color_manual(values = c("20" = "#FFD700", "21" = "#FF8C00")) +
+  theme(legend.position = "right")
+
+
+ggplotly(d.dispersion, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "white",
+      font = list(size = 12)
+    )
+  )
+
+```
+
+El análisis revela que la mayoría de las películas se agrupan en un rango de recaudación de hasta 500 millones de dólares y presupuestos que oscilan alrededor de los 50 millones. Este patrón es especialmente evidente en las películas del siglo XX, cuando las producciones cinematográficas, aunque ambiciosas, no alcanzaban las colosales cifras económicas actuales. Sin embargo, en el siglo XXI, el auge de los blockbusters ha desplazado este límite, con películas superando la barrera de los 1000 millones de dólares en recaudación, destacándose las superproducciones.
+
+Entre estas, las películas que más sobresalen por su desempeño económico son *Avengers: Infinity War* y *Avengers: Endgame*. Estas obras, parte del fenómeno cultural del Universo Cinematográfico de Marvel, no solo redefinieron los límites del género de superhéroes, sino que también marcaron un hito en la rentabilidad del cine. Estas producciones de Disney, con presupuestos que superaron los 300 millones de dólares, generaron ingresos que excedieron los 2000 millones de dólares, situándolas en lo más alto del ranking de recaudaciones globales. Este éxito refleja la importancia de las franquicias en el cine moderno, especialmente aquellas que combinan universos narrativos expansivos con estrategias de marketing masivas.
+
+El contraste entre las películas de ambos siglos subraya una transición notable en la industria cinematográfica. En el siglo XX, muchas películas, incluidas aquellas que pertenecen al top 250, se produjeron con presupuestos modestos y recaudaron cifras proporcionales, reflejando una época en la que el cine era una forma de arte más accesible y menos dominada por el modelo de negocio de las franquicias. Por el contrario, el siglo XXI ha sido testigo de una explosión en los presupuestos y las recaudaciones, impulsada por el desarrollo tecnológico, la globalización de la industria y el crecimiento del mercado de entretenimiento digital.
+
+Un dato curioso es la ausencia de Avatar, la película con mayor recaudación de la historia, en el top 250 de IMDb. A pesar de su enorme éxito comercial y su revolucionario uso de tecnología, no logró alcanzar la puntuación mínima necesaria para entrar en este prestigioso ranking (7.9). Esto pone de manifiesto que, si bien el rendimiento económico es un factor crucial, no siempre garantiza un reconocimiento universal en términos de calidad percibida por los usuarios y críticos.
+
+Este análisis refuerza la idea de que el cine ha evolucionado no solo como arte, sino también como negocio. Si bien las películas más exitosas en términos económicos suelen ser grandes producciones del siglo XXI, muchas obras con menor inversión logran mantenerse relevantes gracias a su calidad narrativa y artística. Por tanto, al explorar la relación entre recaudaciones y presupuestos, no solo identificamos patrones de rentabilidad, sino también la manera en que la industria cinematográfica refleja los cambios sociales y culturales a lo largo del tiempo.
+
+
+
+<br>
+<h3>Análisis regional de las producciones</h3>
+
+Desde sus inicios, la industria cinematográfica ha sido un fenómeno global en el que las distintas regiones del mundo han contribuido con sus propios estilos narrativos, técnicas de filmación y contextos culturales. Sin embargo, la distribución del poder y la influencia dentro de este sector no siempre ha sido uniforme. En sus primeros años, la industria estuvo dominada por Europa, con países como Francia, Alemania e Italia liderando innovaciones técnicas y artísticas. Más tarde, con el auge de Hollywood, Estados Unidos se consolidó como el epicentro global del cine, beneficiándose de su capacidad industrial y la creación de un sistema de estudios que revolucionó la producción y distribución.
+
+En contraste, otras industrias cinematográficas, como la de Japón o India, desarrollaron mercados internos sólidos que les permitieron no depender completamente de las audiencias internacionales. Por su parte, países como Corea del Sur, España y Brasil se enfocaron en producciones de autor que destacaron por su originalidad, logrando reconocimiento global más recientemente.
+
+Este análisis busca comparar cómo esa evolución histórica se refleja en la distribución de las películas incluidas en el top 250 de IMDb, un ranking que refleja las preferencias de una audiencia global. Examinar estas preferencias a través de un análisis regional nos permite entender qué países han logrado exportar sus producciones al mundo y cuáles dominan en términos de cantidad y calidad percibida.
+
+
+
+#### Wordcloud: Densidad de películas por país
+
+En este wordcloud representaremos la densidad de películas por cada país de origen en el top 250 de IMDb. Para esto, cuantificamos la variable categórica "country", siendo los países con mayor tamaño de letra los que más presentes están en nuestra base de datos.
+
+Con el propósito de que funcione bien el wordcloud, en lugar de utilizar United States tal y como aparece en los datos lo convertiremos en USA.
+
+
+```{r}
+
+imdb$country <- gsub("United States", "USA", imdb$country)
+
+wordcloud_data <- imdb %>%
+  group_by(country) %>%
+  summarize(frequency = n())
+
+yellow_palette <- c("#FFCC00", "#FFB300", "#FFA500")
+set.seed(123)
+wordcloud(
+    words = wordcloud_data$country,
+    freq = wordcloud_data$frequency,
+    colors = yellow_palette
+)
+
+```
+
+El dominio absoluto de Estados Unidos es evidente en el wordcloud, donde su representación es abrumadora. Este resultado es consistente con el papel de Hollywood, no solo como líder en volumen de producción, sino también como motor cultural global.
+
+El Reino Unido, históricamente un aliado cercano de Hollywood, ocupa el segundo lugar en términos de representación. Este país ha producido obras icónicas que combinan talento local con la participación de actores y directores reconocidos internacionalmente. Japón, en cambio, se destaca como un caso especial: a pesar de ser una industria orientada principalmente a su mercado interno, sus producciones (en especial, anime y cine de autor) han logrado un impacto global desproporcionado.
+
+Alemania y Francia mantienen su legado como pioneros del cine, mientras que Italia, conocida por el neorrealismo y producciones épicas, también se hace presente. India, aunque es uno de los mayores productores mundiales de cine, tiene una representación limitada en el top, lo que refleja una desconexión entre la escala de su producción y su reconocimiento global.
+
+
+
+#### Diagrama de Sectores: Distribución porcentual
+
+Para complementar el análisis del wordcloud, un diagrama de sectores desglosa los países según su porcentaje de representación en el top 250. Para una representación más clara, agrupamos en la categoría "Other countries" aquellos países con menos del 2% de las películas.
+
+
+```{r}
+
+country_data <- imdb %>% 
+  group_by(country) %>% 
+  summarise(frequency = n())
+
+total_freq <- sum(country_data$frequency)
+country_data <- country_data %>%
+  mutate(percentage = frequency / total_freq * 100) %>%
+  mutate(country = ifelse(percentage < 2, "Other countries", country))
+
+country_data_summary <- country_data %>%
+  group_by(country) %>%
+  summarise(frequency = sum(frequency)) %>%
+  arrange(desc(frequency))
+
+colors_palette <- paletteer_c("ggthemes::Orange-Gold", n = nrow(country_data_summary))
+
+plot_ly(
+  data = country_data_summary,
+  labels = ~country,
+  values = ~frequency,
+  textinfo = 'label+percent',
+  insidetextorientation = 'radial',
+  marker = list(
+    colors = colors_palette
+  )
+) %>%
+  add_pie() %>%
+  hide_legend()
+
+```
+
+Estados Unidos domina con el 58% del total, seguido por el Reino Unido (7.2%) y Japón (6%). Esta concentración refleja no solo la capacidad de producción de estos países, sino también su habilidad para exportar contenido cultural que resuene con audiencias internacionales.
+
+Alemania (3.6%), Francia (3.2%) e Italia (2.8%) subrayan la importancia del cine europeo en la historia y el presente de la cinematografía global. Aunque representan un menor porcentaje que Estados Unidos, estas naciones han sido fundamentales en el desarrollo de géneros y estilos únicos que han influido en el cine global.
+
+Aunque cada país en la categoría "Other countries" tiene una representación menor al 2%, su impacto colectivo alcanza un significativo 16.8%. Este grupo incluye países como España, Brasil, Corea del Sur y Argentina, que han producido películas aclamadas por la crítica que reflejan la diversidad cultural del cine global. Corea del Sur es particularmente notable en los últimos años, con películas como *Parasite* que han redefinido las percepciones globales sobre el cine no occidental.
+
+El predominio del cine occidental en este ranking refleja no solo su capacidad de producción, sino también el sesgo cultural de una audiencia mayoritariamente angloparlante en IMDb. Sin embargo, la representación de países como Japón, Corea del Sur e incluso Argentina sugiere que las audiencias globales están cada vez más abiertas a historias y estilos que trascienden las fronteras culturales.
+
+Por otro lado, países como India o China, a pesar de tener industrias cinematográficas masivas, están infrarepresentados en el top 250. Esto podría deberse a diferencias en las expectativas narrativas y estilísticas entre sus audiencias locales y los usuarios globales de IMDb.
+
+El análisis regional de las películas del top 250 de IMDb destaca las profundas desigualdades en la representación global, con un fuerte sesgo hacia Estados Unidos y Europa occidental. Sin embargo, también resalta el creciente impacto de países como Japón y Corea del Sur, que están rompiendo barreras culturales y conquistando audiencias internacionales. Este panorama sugiere que, aunque el cine occidental sigue dominando, existe un espacio creciente para historias más diversas y representativas del mundo entero.
+
+
+
+<br>
+<h3>Representación de los datos en mapas coropléticos</h3>
+
+Los mapas coropléticos son herramientas visuales potentes que permiten analizar datos cuantitativos y cualitativos distribuidos geográficamente. En el contexto cinematográfico, ofrecen una perspectiva global de cómo las películas y sus características clave, como el presupuesto, la recaudación y el número de producciones, se distribuyen entre las naciones. Este enfoque no solo facilita la interpretación de tendencias globales, sino que también resalta patrones y disparidades que podrían pasar desapercibidos en análisis tabulares o gráficos convencionales.
+
+Para este análisis, utilizamos mapas interactivos que proporcionan un nivel adicional de dinamismo y exploración. Dividiremos el análisis en tres apartados específicos, explorando el número de películas, el presupuesto medio y la recaudación media, y ajustando estos valores a factores demográficos y económicos cuando sea necesario.
+
+
+#### Mapa interactivo por número de películas según el tamaño de la población
+
+El primer mapa interactivo representa el número de películas por país, ajustado según la población. Este ajuste es crucial para evitar que países altamente poblados como Estados Unidos dominen visualmente por su escala de películas en el top 250 de IMDb
+
+
+```{r}
+
+geoj <- geojson_read("https://ctim.es/AEDV/data/geo_countries.geojson",  what = "sp")
+geoj_ti <- geoj %>% as_tibble()
+
+library(dplyr)
+library(leaflet)
+library(htmltools)
+
+imdb_summary <- imdb %>%
+  group_by(ISO_A3) %>%
+  summarise(
+    avg_budget = mean(budget, na.rm = TRUE), 
+    avg_box_office = mean(box_office, na.rm = TRUE), 
+    freq_movies = n(),
+    population = mean(country_population),
+    gdp = mean(gdp)
+  )
+
+join <- left_join(geoj_ti, imdb_summary, by = c("ISO_A3" = "ISO_A3"))
+
+etiquetas <- paste(
+  "<strong>", join$ADMIN, 
+  "</strong><br>Nº de Películas: ", join$freq_movies
+) %>%
+  lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlOrRd", domain = join$freq_movies/join$population, na.color = "#BDBDBD")
+
+geoj %>%
+  leaflet() %>%
+  setView(lng = 5, lat = 22, zoom = 1) %>%
+  addPolygons(
+    fillColor = ~pal(join$freq_movies/join$population),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = rgb(0.2, 0.2, 0.2),
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE
+    ),
+    label = etiquetas
+  )
+
+```
+
+A pesar del ajuste por población, Estados Unidos sigue destacándose debido a su gigantesca industria cinematográfica, marcando la tonalidad más intensa. Sin embargo, es interesante observar cómo algunos países de menor población, como Nueva Zelanda, logran posicionarse con gran intensidad en el mapa. Esto se debe, en gran parte, a la inclusión de tres películas icónicas: la trilogía de El Señor de los Anillos, que no solo tuvo un impacto cultural significativo, sino que también se convirtió en un símbolo de la capacidad cinematográfica del país.
+
+En lo que respecta a Europa, países como el Reino Unido presenta una densidad moderada, lo que refleja su histórico papel en la industria del cine. Irlanda destaca por tener dos películas pese a su limitada extensión territorial ya que es un destino de ensueño muy demandado en la industria. Suecia y Dinamarca cumplen con las expectativas propias de los países escandinavos, ya que tienen una cultura cinematográfica rica y de calidad.
+
+En lo que respecta a Asia y África, salvo excepciones como Japón o Corea del Sur, las tonalidades son menos intensas, destacando pese a su densidad de población por la gran representación de estos continentes en el top 250 de IMDb.
+
+
+
+#### Mapa interactivo por presupuesto medio
+
+En segundo lugar, analizamos el presupuesto medio. En la base de datos introdujimos el valor del PIB con el fin de usarlo como cociente y escalar los datos, considerando que, de otra manera, la gráfica quedaría poco representativa a nivel visual. Pese a la interpretación inicial, al aplicar la medida, países como Marruecos o Jordania se llevaban todo el color debido a su bajo Producto Interior Bruto. Por esto, utilizamos exclusivamente el promedio presupuestario por película como criterio.
+
+
+```{r}
+
+etiquetas <- paste(
+  "<strong>", join$ADMIN, 
+  "</strong><br>Presupuesto medio: ", round(join$avg_budget)
+) %>%
+  lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlOrRd", domain = join$avg_budget, na.color = "#BDBDBD")
+
+geoj %>%
+  leaflet() %>%
+  setView(lng = 5, lat = 22, zoom = 1) %>%
+  addPolygons(
+    fillColor = ~pal(join$avg_budget),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = rgb(0.2, 0.2, 0.2),
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE
+    ),
+    label = etiquetas
+  ) %>%
+  addLegend(
+    "bottomleft",
+    pal = pal,
+    values = join$avg_budget,
+    title = "Presupuesto medio por países",
+    labFormat = function(type, cuts, p) {
+      n = length(cuts)
+      as.character(round((as.integer(cuts)[-n] + as.integer(cuts)[-1]) / 2))
+    },
+    opacity = 1
+  )
+
+```
+
+Estados Unidos ha reducido su tonalidad debido al gran número de películas y diferencias presupuestarias que equilibran la media del país. Marruecos, en contraposición, muestra un tono extramadamente fuerte debido a que posee una única producción, *Casablanca*, grabada por completo en este país y con un presupuesto multimillonario por la dirección estadounidense. Cabe mencionar nuevamente a Nueva Zelanda y, en esta ocasión, Australia, con el gran aporte de *Mad Max: Fury Road*.
+
+
+
+#### Mapa interactivo por recaudación media
+
+El último mapa interactivo representa la recaudación promedio por país. Este análisis ofrece una perspectiva económica de la industria y permite identificar qué países producen películas con mayor rentabilidad promedio.
+
+```{r}
+
+etiquetas <- paste(
+  "<strong>", join$ADMIN, 
+  "</strong><br>Reacaudación media: ", round(join$avg_box_office)
+) %>%
+  lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlOrRd", domain = join$avg_box_office, na.color = "#BDBDBD")
+
+geoj %>%
+  leaflet() %>%
+  setView(lng = 5, lat = 22, zoom = 1) %>%
+  addPolygons(
+    fillColor = ~pal(join$avg_box_office),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = rgb(0.2, 0.2, 0.2),
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE
+    ),
+    label = etiquetas
+  ) %>%
+  addLegend(
+    "bottomleft",
+    pal = pal,
+    values = join$avg_box_office,
+    title = "Recaudación media por países",
+    labFormat = function(type, cuts, p) {
+      n = length(cuts)
+      as.character(round((as.integer(cuts)[-n] + as.integer(cuts)[-1]) / 2))
+    },
+    opacity = 1
+  )
+
+```
+
+Nueva Zelanda vuelve a destacar por la multimillonaria franquicia ambientada en la Tierra Media. El resto de países muestra tonalidades bajas, pero diferenciables entre sí.
+
+La influencia de superproducciones en países con menos tradición cinematográfica, como Jordania, muestra cómo una sola película puede sesgar las estadísticas globales. Aunque algunos países asiáticos están ganando protagonismo, su recaudación promedio sigue estando rezagada en comparación con países occidentales.
+
+Estos mapas coropléticos interactivos no solo presentan una representación visual intuitiva de los datos, sino que también invitan a reflexionar sobre la desigualdad en la distribución de recursos y reconocimiento en la industria cinematográfica global. Si bien Estados Unidos domina en todos los aspectos analizados, la destacada representación de países como Nueva Zelanda o Marruecos ilustra cómo producciones icónicas pueden redefinir la percepción de naciones menos tradicionales en el ámbito del cine.
+
+Además, al ajustar los datos por población o PIB, se revelan patrones y anomalías que ofrecen una comprensión más matizada de la industria cinematográfica mundial. Estos mapas no solo sirven como herramientas analíticas, sino también como un recordatorio del impacto cultural y económico que el cine puede tener en naciones de todo tamaño y desarrollo económico.
+
+
+
+<br>
+<h3>Series temporales y descomposición STL</h3>
+
+El análisis de series temporales se ha consolidado como una herramienta esencial para entender cómo evolucionan las variables a lo largo del tiempo. En el ámbito cinematográfico, estas permiten analizar atributos como presupuesto, recaudación, puntuación y duración de las películas, proporcionando una visión histórica de las dinámicas que han moldeado la industria. Además de identificar patrones y tendencias, este enfoque ayuda a comprender cambios estructurales e identificar fenómenos atípicos, como el impacto de superproducciones o innovaciones tecnológicas.
+
+Por un lado, las series temporales son conjuntos de datos ordenados cronológicamente, lo que permite examinar cómo evolucionan las variables en intervalos regulares, como años o décadas. En este contexto, se utilizan para explorar:
+
+1. <b>Tendencias</b>: Cambios persistentes y graduales, como el incremento en los presupuestos de las películas a lo largo del tiempo.
+2. <b>Estacionalidades</b>: Ciclos regulares que se repiten en intervalos predecibles. Aunque menos evidente en la industria cinematográfica, puede observarse en patrones de producción o en periodos históricos específicos.
+3. <b>Fluctuaciones aleatorias</b>: Variaciones no regulares que reflejan eventos únicos o impredecibles, como el estreno de una franquicia de gran impacto.
+
+Por otro lado, la descomposición STL (Seasonal-Trend Decomposition using Loess) es una técnica flexible que divide una serie temporal en tres componentes clave:
+tendencia, estacionalidad y residual. El nuevo componente, el residual, representa las fluctuaciones no explicadas por la tendencia o la estacionalidad, permitiendo identificar eventos únicos, como el impacto de una película de culto.
+
+Esta metodología aporta claridad al separar componentes estructurales de eventos aleatorios, permitiendo un análisis detallado de las dinámicas detrás de los datos. Por ejemplo:
+
+- **Presupuestos**: se pueden identificar periodos históricos en los que las inversiones en cine han crecido, reflejando avances tecnológicos o cambios en las expectativas del público.
+- **Recaudación**: permite explorar cómo el éxito económico de las películas ha evolucionado y su relación con cambios en el mercado global.
+- **Puntuaciones**: revela cómo las preferencias del público y la crítica han cambiado con el tiempo.
+- **Duración**: analiza tendencias relacionadas con la narrativa cinematográfica y cómo los largometrajes han evolucionado en duración.
+
+Al utilizar series temporales y STL, se puede discernir no solo el pasado de la industria cinematográfica, sino también prever tendencias futuras, proporcionando un marco analítico robusto para interpretar su evolución. A continuación, pasamos a explorar cada una de estas dimensiones con mayor detalle.
+
+
+#### Series temporales
+
+En primer lugar, comenzaremos con el análisis de las valoraciones. Para ello, calculamos la puntuación media para cada año representado en el estudio, ya que sabemos que hay años con más de una película.
+
+```{r}
+
+imdb.rating.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.rating = mean(na.omit(rating))) %>%
+  as_tsibble(index=year)
+
+rating_plot <- imdb.rating.ts %>%
+  ggplot(aes(x = year, y = avg.rating)) +
+  geom_line(color = "#FFCC00", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Puntuación media:", round(avg.rating, 2))), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Valoraciones Top 250 IMDb",
+    subtitle = "Promedio de valoraciones por año",
+    x = "Año",
+    y = "Puntuación media"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+ggplotly(rating_plot, tooltip = "text")
+
+```
+
+El análisis de las valoraciones promedio a lo largo del tiempo revela una ausencia de tendencias claras, lo que podría parecer contradictorio con la idea de que los estándares críticos evolucionan con los años. Este resultado destaca la naturaleza subjetiva y atemporal de las valoraciones cinematográficas.
+
+El pico observado en 1972, atribuido exclusivamente a la presencia de *The Godfather* en los datos de ese año, subraya cómo una única obra maestra puede influir en los resultados globales. Este caso plantea preguntas interesantes sobre la representatividad de las estadísticas promedio en periodos de baja densidad cinematográfica y sugiere que las valoraciones no solo miden calidad técnica, sino también la resonancia cultural y el legado histórico de una película.
+
+En términos más generales, la estabilidad de las puntuaciones a lo largo del tiempo puede interpretarse como un reflejo de cómo las películas más destacadas, independientemente de la década en que se produjeron, tienden a mantener un nivel de calidad que trasciende épocas. Esto habla de la capacidad del cine para captar elementos universales de la experiencia humana, a pesar de los cambios en gustos y expectativas.
+
+En segundo lugar, analizamos la duración media de los largometrajes de cada año.
+
+```{r}
+
+imdb$run_time_min <- NA
+
+for (i in 1:nrow(imdb)) {
+  run_time_str <- imdb$run_time[i]
+  hours <- as.numeric(gsub("h.*", "", gsub(" .*", "", run_time_str)))
+  minutes <- as.numeric(gsub(".*h ", "", gsub("m", "", run_time_str)))
+  if (is.na(minutes)) {
+    minutes <- 0
+  }
+  
+  if (is.na(hours)) {
+    hours <- 0
+  }
+  total_minutes <- (hours * 60) + minutes
+  imdb$run_time_min[i] <- total_minutes
+}
+
+imdb.runtime.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.runtime.min = mean(na.omit(run_time_min))) %>%
+  as_tsibble(index=year)
+
+runtime_plot <- imdb.runtime.ts %>%
+  ggplot(aes(x = year, y = avg.runtime.min)) +
+  geom_line(color = "#ff7f0e", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Duración:", round(avg.runtime.min, 1), "min")), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Duración media Top 250 IMDb",
+    subtitle = "Media de duración de películas por año",
+    x = "Año",
+    y = "Duración media (min)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+ggplotly(runtime_plot, tooltip = "text")
+
+```
+
+El análisis de la duración media de los largometrajes ofrece un panorama mucho más claro. A lo largo de las primeras décadas del cine, las películas muestran un crecimiento progresivo en su duración, alcanzando un punto de estabilidad hacia 1952. Esta estabilización, con valores promedio situados entre 2 horas y 2 horas y 40 minutos, refleja la consolidación de un estándar narrativo dentro de la industria.
+
+Los primeros años del cine estuvieron marcados por experimentos técnicos y narrativos, lo que explica las duraciones más cortas. Sin embargo, con la llegada de avances como el cine sonoro y las películas en color, los cineastas comenzaron a explorar historias más complejas que requerían una duración mayor.
+
+La estabilización posterior podría atribuirse al equilibrio entre el tiempo que la audiencia está dispuesta a dedicar a una experiencia cinematográfica y las necesidades de los realizadores para desarrollar narrativas completas. Aunque algunas producciones modernas, como *Avengers: Endgame*, han desafiado este límite, estas son excepciones destinadas a satisfacer las demandas de narrativas épicas o universos cinematográficos extensos.
+
+Por último, observamos los presupuestos y recaudaciones, los cuales pueden haber estado influenciados por avances tecnológicos o en la propia industria cinematográfica. Analizamos estos dos atributos a la par ya que están intñimamente relacionados entre sí como pudimos ver en el diagrama de dispersión.
+
+```{r}
+
+imdb.budget.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.budget = mean(na.omit(budget))) %>%
+  as_tsibble(index=year)
+
+budget_plot <- imdb.budget.ts %>%
+  ggplot(aes(x = year, y = avg.budget / 1000000)) +
+  geom_line(color = "#EE2C2C", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Presupuesto:", scales::comma(avg.budget / 1000000, accuracy = 0.1), "M")), size = 0.01, alpha = 0) + 
+  labs(
+    title = "Presupuesto Top 250 IMDb",
+    subtitle = "Promedio del presupuesto por año (en millones)",
+    x = "Año",
+    y = "Presupuesto medio (millones)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+ggplotly(budget_plot, tooltip = "text")
+
+```
+
+```{r}
+
+imdb.boxoffice.ts <- imdb %>%
+  group_by(year) %>%
+  summarise(avg.boxoffice = mean(na.omit(box_office))) %>%
+  as_tsibble(index=year)
+
+boxoffice_plot <- imdb.boxoffice.ts %>%
+  ggplot(aes(x = year, y = avg.boxoffice / 1000000)) +
+  geom_line(color = "#2ca02c", size = 1, na.rm = TRUE) +
+  geom_point(aes(text = paste("Año:", year, "<br>Recaudación:", scales::comma(avg.boxoffice / 1000000, accuracy = 0.1), "M")), size = 0.01, alpha = 0) +
+  labs(
+    title = "Recaudaciones Top 250 IMDb",
+    subtitle = "Promedio de recaudaciones por año (en millones)",
+    x = "Año",
+    y = "Recaudación media (millones)"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+ggplotly(boxoffice_plot, tooltip = "text")
+
+```
+
+El análisis de los presupuestos y las recaudaciones presenta una tendencia mucho más evidente: ambas variables muestran un crecimiento sostenido, especialmente desde la década de 1960. Este aumento refleja no solo el crecimiento económico global, sino también la evolución del cine como una de las industrias culturales más importantes del mundo.
+
+El primer pico significativo en 1965 marca un momento crucial en la historia del cine, probablemente vinculado al auge del cine de autor en Europa y el desarrollo de producciones más ambiciosas en Hollywood. A partir de este momento, las gráficas de presupuestos y recaudaciones muestran un crecimiento paralelo, lo que subraya la estrecha relación entre la inversión económica y el éxito comercial.
+
+En las últimas décadas, este crecimiento ha sido impulsado por varios factores clave:
+
+- <b>Globalización</b>: La capacidad de distribuir películas a audiencias globales ha ampliado los mercados, justificando presupuestos mucho mayores.
+- <b>Innovación tecnológica</b>: Desde efectos especiales generados por ordenador hasta avances en la producción y distribución, la tecnología ha permitido crear películas visualmente más impresionantes, aunque a un costo considerable.
+- <b>Marketing masivo</b>: La promoción global de grandes franquicias ha sido instrumental para alcanzar niveles de recaudación récord.
+
+No obstante, este crecimiento también plantea preguntas sobre la sostenibilidad del modelo de superproducciones. Si bien estas generan ingresos extraordinarios, también monopolizan recursos que podrían diversificarse hacia proyectos independientes o innovadores, algo de lo que muchos expertos como Martin Scorsese se hacen eco.
+
+Los resultados de este análisis resaltan no solo las tendencias evolutivas en el cine, sino también las fuerzas complejas que han dado forma a la industria. Desde la consolidación de estándares narrativos hasta el impacto de la globalización y la tecnología en presupuestos y recaudaciones, el cine se revela como un espejo de los cambios sociales y económicos.
+
+Además, las diferencias en la claridad de las tendencias analizadas reflejan cómo ciertos aspectos, como los presupuestos, están más directamente influenciados por factores estructurales, mientras que otros, como las valoraciones, son moldeados por percepciones subjetivas y contextos históricos específicos.
+
+El cine, en su esencia, no es solo un producto cultural, sino también un motor económico y un reflejo de las aspiraciones y valores de su época. Este análisis no solo arroja luz sobre cómo ha cambiado la industria, sino que también plantea preguntas sobre hacia dónde podría dirigirse en el futuro.
+
+
+
+#### Descomposición STL
+
+En este apartado, hemos decidido aplicar la descomposición STL exclusivamente a la serie temporal de recaudaciones promedio, dejando de lado otros atributos como las valoraciones, las duraciones y los presupuestos. Esta decisión se justifica por varias razones:
+
+1. <b>Análisis previos</b>: Las series temporales de valoraciones y duraciones mostraron patrones que ya han sido analizados de manera exhaustiva en apartados previos. Las valoraciones no exhiben tendencias claras ni estacionalidad, mientras que las duraciones han mostrado una estabilización notable desde mediados del siglo XX. Esto hace que una descomposición adicional no aporte información significativa más allá de lo ya discutido.
+2. <b>Similitud entre presupuesto y recaudación</b>: La evolución de los presupuestos presenta una relación directa y estrecha con las recaudaciones, como se demostró en análisis anteriores. Ambos atributos comparten tendencias muy similares, por lo que descomponerlos de manera independiente no genera nuevos hallazgos significativos. Por este motivo, centramos la descomposición en la recaudación, que ofrece una visión más completa del impacto económico y comercial de las películas.
+3. <b>Relevancia económica</b>: El análisis de las recaudaciones es particularmente interesante porque refleja no solo las tendencias de inversión de los estudios cinematográficos, sino también el comportamiento del mercado y la respuesta del público. Este atributo encapsula múltiples dinámicas, desde la aceptación cultural hasta la estrategia de distribución, haciendo de su descomposición un ejercicio especialmente enriquecedor.
+
+Al aplicar la descomposición STL a las recaudaciones, nuestro objetivo es desglosar este atributo en sus componentes de tendencia, estacionalidad, y residual para obtener una perspectiva más clara sobre los patrones históricos, las fluctuaciones aleatorias y las fuerzas estructurales que han moldeado este aspecto fundamental de la industria del cine.
+
+
+```{r}
+
+imdb.boxoffice1970.ts <- imdb %>%
+  filter(year >= 1970) %>%
+  group_by(year) %>%
+  summarise(avg.boxoffice = mean(na.omit(box_office/1000000))) %>%
+  as_tsibble(index=year)
+
+imdb.boxoffice.ts.STL <- imdb.boxoffice1970.ts %>%
+  model(STL(avg.boxoffice,robust = TRUE))  %>%
+  components() 
+imdb.boxoffice.ts.STL %>%
+  autoplot() +
+  labs(title = "Descomposición de las recaudaciones medias",
+       subtitle = "Componente estacional, tendencia y residual",
+       x = "Año", y = "Media de recaudación en millones") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.subtitle = element_text(hjust = 0.5, size = 10, color = "#808080"),
+        axis.title = element_text(size = 12))
+
+```
+
+**Componente de estacionalidad**
+
+Una de las conclusiones más significativas del análisis STL es la ausencia de estacionalidad en la serie temporal de recaudaciones. Esto indica que las recaudaciones no dependen de un patrón periódico fijo o de ciclos recurrentes, como podrían esperarse en otros contextos, como el consumo estacional de bienes o la audiencia televisiva.
+
+En el cine, la falta de estacionalidad podría explicarse por la diversidad de factores que determinan el éxito en taquilla, como el género, las estrategias de marketing, y las fechas de estreno, que pueden variar ampliamente dependiendo del mercado y las decisiones de los estudios. Aunque ciertos periodos del año, como los meses de verano y las festividades, suelen asociarse con mayores ingresos debido a estrenos estratégicos (blockbusters o películas familiares), estos no generan un patrón repetitivo claramente identificable en esta base de datos.
+
+
+<br>
+**Componente de Tendencia**
+
+El componente de tendencia revela una clara evolución al alza en las recaudaciones, aunque de manera no lineal. A partir de 2015, se observa una pendiente positiva más pronunciada, lo que podría estar relacionado con factores como:
+
+- <b>Auge de las franquicias</b>: Los últimos años han sido dominados por grandes franquicias, como el Universo Cinematográfico de Marvel, cuyas películas hemos visto que generan ingresos multimillonarios gracias a su popularidad global.
+- <b>Innovaciones en formatos de exhibición</b>: El uso de tecnologías como [IMAX](https://www.cinesa.es/salas-premium/imax/), junto con mayores precios en boletos, ha contribuido a incrementar los ingresos por proyección.
+
+La no linealidad de la tendencia también puede estar influenciada por los avances tecnológicos, que han permitido producciones más espectaculares, y la diversificación de los modelos de distribución, como el streaming, que no solo afectan las recaudaciones sino que también amplían el acceso a las películas de este top.
+
+
+<br>
+**Componente residual**
+
+El componente residual muestra un margen de error considerable, lo que refleja la complejidad inherente a las recaudaciones cinematográficas. Los residuales representan las variaciones no explicadas por la tendencia o por una hipotética estacionalidad, y en este caso destacan varios factores que pueden contribuir a estas fluctuaciones:
+
+- <b>Éxitos inesperados</b>: Películas con presupuestos modestos que logran grandes recaudaciones debido al boca a boca o al interés viral, como fue el caso de Parásitos o Joker.
+- <b>Fiascos financieros</b>: Producciones de alto presupuesto que no logran cubrir los costos de producción debido a una mala recepción crítica o comercial.
+- <b>Impactos externos</b>: Eventos globales como la pandemia de COVID-19, que afectó drásticamente los ingresos de la industria del cine, mostrando anomalías significativas en los residuales, aunque a su vez produjo un gran aumento en el consumo de plataformas de streaming.
+
+Estos errores o variaciones son cruciales, ya que, al combinarse con la tendencia y otros componentes, reconstruyen la serie temporal original, permitiendo así comprender la interacción entre factores estructurales y aleatorios.
+
+El análisis de la descomposición STL no solo refuerza observaciones previas, como el crecimiento continuo de las recaudaciones, sino que también destaca la complejidad de predecir ingresos en la industria cinematográfica. La ausencia de estacionalidad, combinada con la importancia de eventos residuales, subraya la naturaleza altamente impredecible del mercado cinematográfico, donde tanto los éxitos como los fracasos pueden surgir en cualquier momento.
+
+A partir de estos hallazgos, es evidente que la evolución de las recaudaciones está impulsada por una combinación de tendencias de largo plazo, como la globalización y la tecnología, junto con factores aleatorios, como el impacto cultural y la innovación narrativa. Este análisis no solo contribuye a entender el pasado, sino que también plantea preguntas interesantes sobre cómo estas fuerzas podrían dar forma al futuro de la industria del cine.
+
+
+
+
+
+
+<br>
+<h3>Modelos ARIMA y predicciones</h3>
+
+Los modelos ARIMA (Autoregressive Integrated Moving Average) son herramientas estadísticas ampliamente utilizadas para el análisis y predicción de series temporales. Se caracterizan por su capacidad para modelar datos que muestran patrones temporales sin requerir estacionalidad evidente, aunque existen variantes estacionales del modelo (SARIMA) para series con este tipo de comportamiento. Un modelo ARIMA se define por tres parámetros principales:
+
+- <b>P (Autoregresión, AR)</b>: representa el número de observaciones pasadas que el modelo utiliza para predecir el valor actual.
+- <b>D (Diferenciación, I)</b>: indica cuántas veces se necesitan diferenciar los datos para hacerlos estacionarios (eliminar tendencias a largo plazo).
+- <b>Q (Media Móvil, MA)</b>: refleja el uso de los errores de predicción pasados para corregir valores futuros.
+
+La metodología ARIMA combina estos tres elementos para crear un modelo que pueda ajustarse tanto a las tendencias como a las fluctuaciones de una serie temporal. Para nuestros datos no estacionarios, se aplican transformaciones como diferenciaciones para estabilizar la serie.
+
+En el contexto de predicción, los modelos ARIMA funcionan al extrapolar patrones detectados en datos históricos para estimar valores futuros. Los intervalos de confianza asociados a estas predicciones indican el rango de incertidumbre, lo que ayuda a evaluar la fiabilidad de las proyecciones.
+
+El objetivo de nuestro análisis es predecir las recaudaciones cinematográficas, al igual que en el apartado anterior de descomposición STL, para los próximos cinco años. Dado que las recaudaciones antes de 1970 eran significativamente más bajas y menos representativas del contexto actual, decidimos restringir el modelo a los datos posteriores a esta fecha para capturar mejor las dinámicas contemporáneas del mercado.
+
+
+```{r}
+
+imdb.boxoffice.ts.arima <- imdb.boxoffice1970.ts %>%
+     model(ARIMA(avg.boxoffice))
+
+imdb.boxoffice.ts.arima.prediction <- imdb.boxoffice.ts.arima %>%
+  forecast(h = "5 years")
+
+imdb.boxoffice.ts.arima.prediction %>%
+  autoplot(imdb.boxoffice1970.ts) +
+  labs(
+    title = "Análisis predictivo de las recaudaciones de las películas de IMDb",
+    subtitle = "Proyección en los próximos 5 años según el modelo ARIMA",
+    x = "Año",
+    y = "Recaudación media en millones",
+  ) +
+  theme_minimal() +  
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, size = 10, color = "#808080"),
+    plot.caption = element_text(size = 9, color = "#808080"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 9)
+  )
+
+```
+
+La predicción generada por el modelo muestra un intervalo de confianza extremadamente amplio. Esto indica una alta incertidumbre en los valores proyectados, lo que sugiere que el modelo no es capaz de capturar de manera precisa las dinámicas de las recaudaciones futuras. Este problema podría deberse a factores como la alta volatilidad en los datos históricos o a las limitaciones inherentes al modelo ARIMA para capturar cambios estructurales o influencias externas significativas.
+
+Además, las recaudaciones cinematográficas han mostrado un crecimiento no lineal, especialmente en años recientes, lo que dificulta que un modelo como ARIMA, basado en patrones históricos lineales o cuasi lineales, ajuste adecuadamente los datos.
+
+El modelo ARIMA, aunque útil para comprender patrones históricos, demuestra ser inadecuado en este caso para realizar predicciones confiables sobre las recaudaciones cinematográficas. Las amplias incertidumbres en las proyecciones sugieren que las recaudaciones futuras están sujetas a factores impredecibles que van más allá de las tendencias capturadas en los datos históricos.
+
+A pesar de las limitaciones, este análisis subraya la importancia de la evolución de las recaudaciones y sugiere que la industria del cine seguirá enfrentándose a un entorno dinámico y competitivo en los próximos años.
+
+
+
+<br>
+<h3>Análisis de atributos</h3>
+
+En este apartado, se profundiza en el análisis de los atributos de las películas para extraer información significativa a través de métodos estadísticos avanzados. La finalidad es optimizar la representación de la información mediante la identificación de patrones y la reducción de la complejidad inherente a los datos iniciales. Esta fase no solo organiza las variables existentes, sino que las transforma y analiza su interrelación, estableciendo una base sólida para el entendimiento de fenómenos subyacentes.
+
+
+#### Matriz de correlación
+
+La matriz de correlación es una herramienta esencial para medir la relación lineal entre pares de variables. Valores cercanos a 1 indican una correlación positiva fuerte, mientras que valores cercanos a -1 reflejan una relación negativa fuerte. En este análisis, se incluyen tanto las variables originales de la base de datos (como presupuesto y recaudación) como las variables adicionales (PIB y población del país), con el propósito de evaluar su impacto en las demás.
+
+
+```{r}
+
+imdb %>%
+  na.omit() %>%
+  select(rating, budget, box_office, run_time_min, country_population, gdp) %>%
+  cor(use='complete.obs') %>%
+  hchart()
+
+```
+
+Los resultados muestran, como era predecible, una correlación alta entre el presupuesto y la recaudación (0.85), lo que indica que a medida que aumentan las inversiones, también tienden a crecer las ganancias. Sin embargo, las variables PIB y población del país no presentan correlaciones significativas con los datos de la base original. Esto sugiere que estas métricas macroeconómicas, aunque relevantes para el contexto global, no influyen directamente en las características de las películas analizadas.
+
+
+
+#### Análisis de componentes principales (ACP)
+
+El ACP es una técnica matemática que reduce la dimensionalidad de un conjunto de datos transformando las variables originales en combinaciones lineales llamadas componentes principales. Estas componentes están ordenadas según la varianza que explican, lo que permite identificar cuáles aportan la mayor cantidad de información y descartar las que son redundantes.
+
+
+```{r}
+
+pca <- imdb %>%
+  na.omit() %>%
+  select(country, rating, budget, box_office, run_time_min, country_population, gdp) %>%
+  group_by(country) %>%
+  summarise(
+    rating = mean(rating),
+    budget = mean(budget),
+    box_office = mean(box_office),
+    run_time_min = mean(run_time_min),
+    country_population = last(country_population),
+    gdp = last(gdp)
+  ) %>%
+  column_to_rownames(var="country") %>%
+  prcomp(scale = TRUE)
+
+p <- tibble(
+  label=fct_inorder(paste("PC",1:length(pca$sdev))),
+  varPercent = pca$sdev^2/sum(pca$sdev^2) * 100
+  ) %>%
+  ggplot(aes(x=label,y=varPercent)) +
+  geom_bar(stat = "identity") +
+  labs(x= "Componentes Principales",y= "Porcentaje varianza explicada") +
+  geom_text(aes(label=paste0(round(varPercent,digits = 1),"%")),size=3,colour = "blue",nudge_y = 1.) 
+
+ggplotly(p)
+
+```
+
+Al aplicar el ACP con las variables adicionales (PIB y población del país), se observa que la última componente principal (PC6) tiene una varianza insignificante, lo que refuerza la hipótesis de que estas variables están poco relacionadas con el resto. 
+
+Al tener esta sexta componente un 2%, siguiendo el criterio de este mismo porcentaje, podríamos trabajar únicamente con las 5 primeras y la información no se vería significativamente afectada.
+
+
+#### Gráfico de visualización de los resultados
+
+Un gráfico habitual para visualizar los resultados del ACP es hacer un gráfico de dispersión donde se pone el resultado de los valores de las dos primeras componentes principales para cada observación, es decir se representan los puntos para apreciar cómo están distribuidos los valores de las dos primeras componentes. 
+
+```{r}
+
+hchart(pca,choices = c(1,2))
+
+```
+
+Las variables originales (presupuesto, recaudación, puntuación y duración) se concentran principalmente en el eje x, mientras que PIB y población están mayormente alineadas con el eje y. Las que mayor peso tienen son la población de cada país de producción y la recaudación. Además, los países se concentran demasiado, lo que implica que las componentes no se discriminan bien.
+
+Países como Estados Unidos e India destacan en esta visualización por situarse por debajo del cero en el eje y, probablemente debido a sus valores desproporcionadamente altos en PIB y población en comparación con otros países. Esta distribución confirma que estas variables macroeconómicas no se integran bien con las demás.
+
+Dado que las variables PIB y población no aportan información útil para el análisis del cine, y su inclusión introduce ruido en los resultados, se decide excluirlas en una segunda iteración del análisis. Esto permite un enfoque más refinado sobre las características directamente relacionadas con el cine.
+
+
+
+#### Análisis de atributos: Sin gdp ni country_population
+
+A continuación, vamos a analizar qué ocurre con al calcular las componentes principales únicamente con las variables run_time_min, rating, budget y box_office.
+
+```{r}
+
+pca1 <- imdb %>%
+  na.omit() %>%
+  select(country, rating, budget, box_office, run_time_min, country_population, gdp) %>%
+  group_by(country) %>%
+  summarise(
+    rating = mean(rating),
+    budget = mean(budget),
+    box_office = mean(box_office),
+    run_time_min = mean(run_time_min)
+  ) %>%
+  column_to_rownames(var="country") %>%
+  prcomp(scale = TRUE)
+
+p <- tibble(
+  label=fct_inorder(paste("PC",1:length(pca1$sdev))),
+  varPercent = pca1$sdev^2/sum(pca1$sdev^2) * 100
+  ) %>%
+  ggplot(aes(x=label,y=varPercent)) +
+  geom_bar(stat = "identity") +
+  labs(x= "Componentes Principales",y= "Porcentaje varianza explicada") +
+  geom_text(aes(label=paste0(round(varPercent,digits = 1),"%")),size=3,colour = "blue",nudge_y = 1.) 
+
+ggplotly(p)
+
+```
+
+La cuarta componente mantiene un 3% de varianza, lo que indica que todavía aporta cierta información, aunque marginal. Sin embargo, las tres primeras componentes son las más relevantes, concentrando la mayor parte de la varianza explicada.
+
+
+
+```{r}
+
+hchart(pca1,choices=c(1,2))
+
+```
+
+En el gráfico de dispersión, los puntos están mejor separados, lo que indica que las componentes principales discriminan mejor las observaciones. Las variables recaudación y presupuesto tienen una influencia positiva en el eje x, mientras que puntuación y duración muestran una pendiente negativa. Esto sugiere que las primeras dos variables están relacionadas con aspectos económicos, mientras que las segundas podrían estar más vinculadas a características artísticas o estructurales de las películas.
+
+En general, podemos dejar en claro que recaudación es la variable dominante, teniendo más peso que el presupuesto en el análisis, reflejando su importancia como indicador del éxito de una película. Las variables puntuación y duración,  aunque no están directamente correlacionadas con los aspectos económicos, ofrecen una perspectiva sobre las preferencias del público y las tendencias artísticas en el cine. 
+
+Este análisis de atributos, dividido en dos variantes de estudio, evidencia cómo las herramientas estadísticas avanzadas pueden optimizar la comprensión de datos complejos. Al identificar y excluir variables irrelevantes (como PIB y población del país), se logra una representación más precisa de las dinámicas del cine. La recaudación y el presupuesto emergen como factores dominantes, mientras que la puntuación y la duración ofrecen una visión complementaria del panorama cinematográfico. Este enfoque iterativo no solo mejora la precisión del análisis, sino que también destaca la importancia de ajustar las variables estudiadas según el contexto y los objetivos específicos del análisis.
+
+
+
+
+<br>
+<br>
+<br>
+<h2>Cuadro de mandos</h2>
+
+Un cuadro de mandos es una interfaz interactiva diseñada para facilitar el análisis, la visualización y la interpretación de datos a través de indicadores clave. En este caso, se ha desarrollado utilizando shiny, una librería de R que permite crear aplicaciones web dinámicas, y flexdashboard, que proporciona una estructura visual adaptable y profesional para integrar gráficos e interacciones. Estas herramientas juntas hacen posible una experiencia fluida y eficiente para explorar los datos de forma personalizada y dinámica.
+
+El cuadro de mandos se divide en varias secciones funcionales, cada una diseñada para abordar aspectos específicos del análisis de datos realizado. Estas secciones son las siguientes:
+
+1. <b>General</b>: esta sección introduce al usuario al cuadro de mandos con Un texto explicativo breve que resume el propósito y el contenido de la herramienta e nformación sobre la procedencia de los datos, proporcionando contexto sobre las fuentes y su relevancia. Esta sección actúa como una bienvenida y un punto de partida para los usuarios, orientándolos en la navegación de las funcionalidades disponibles.
+
+2. <b>Diagrama de dispersión</b>: lugar en el que puedes seleccionar distintos indicadores a comparar, analizar la regresión lineal obtenida y aplicar escalas distintas como la logarítmica o boxcox.
+
+3. <b>Series temporales</b>: este apartado permite explorar la evolución histórica de los atributos clave analizados (valoraciones, duración de las películas, presupuesto y recaudación). Los usuarios pueden seleccionar la variable deseada y observar cómo ha cambiado a lo largo del tiempo con el objetivo de identificar patrones, tendencias y posibles cambios disruptivos en estas métricas cinematográficas, visualizados a través de gráficos temporales dinámicos.
+
+4. <b>Mapas coropléticos</b>: mapa interactivo en el que puede sustituir la variable de estudio entre la puntuación media por países, recaudación media obtenida y presupuesto medio. No se aplica ningún tipo de medida que estandarice y son los datos medios de cada región.
+
+5. <b>Descomposición STL</b>: en esta sección, los usuarios pueden seleccionar una de las variables clave para examinar su descomposición mediante el modelo STL (estacionalidad, tendencia y residual). El propósito es facilitar una comprensión más detallada de los factores que influyen en las series temporales, separando efectos estructurales de los aleatorios.
+
+6. <b>Análisis de atributos</b>: este apartado se centra en un estudio más profundo de las relaciones entre las diferentes variables permitiendo visualizar las relaciones lineal, ver cómo se pueden reducir las dimensiones de los datos conservando la varianza y observar la contribución de las variables a las principales componentes y su distribución. De esta manera, podemos identificar redundancias entre variables, reducir la complejidad de los datos y visualizar patrones que no son evidentes en una simple exploración descriptiva.
+
+
+
+<br>
+<br>
+<br>
+<h2>Conclusiones y trabajos futuros</h2>
+
+Tras realizar un exhaustivo análisis de los datos cinematográficos del top 250 de películas según las valoraciones de IMDb, hemos logrado obtener una visión más clara de las fuerzas que configuran el éxito de estas películas, considerando tanto sus atributos económicos como artísticos. Este proyecto, desarrollado con herramientas estadísticas avanzadas, ha permitido desentrañar las tendencias y patrones de recaudación, presupuesto y otros parámetros, mientras exploramos cómo diversas variables influyen en la industria cinematográfica de maneras complejas e incluso inesperadas.
+
+
+#### Impacto de las variables en las películas
+
+Uno de los hallazgos más relevantes ha sido la destacada influencia de la recaudación y el presupuesto. Como era previsible, estas variables dominan el análisis, reflejando las realidades económicas del cine: las películas con mayores presupuestos y recaudaciones suelen convertirse en los gigantes de la industria. Este hallazgo refuerza la idea de que el éxito comercial sigue siendo un motor clave de la producción cinematográfica. Sin embargo, nuestra investigación también ha demostrado que la calidad artística y estructural de una película sigue siendo determinante, aunque de forma menos directa. Factores como la puntuación crítica y la duración de la película revelan aspectos más subjetivos, relacionados con las preferencias del público y las tendencias narrativas. Las películas con altas valoraciones en plataformas como IMDb tienden a atraer audiencias más comprometidas, y la duración de las mismas parece correlacionarse con un cambio en las preferencias narrativas del espectador.
+
+En cuanto a los actores y directores, hemos observado que figuras como **Robert De Niro**, uno de los actores más prolíficos y recurrentes en nuestro top, representan un factor de atracción tanto en términos de calidad artística como en la expansión de la audiencia global. En el caso de los directores, nombres como Martin Scorsese y Akira Kurosawa no solo destacan por su longevidad en la industria, sino por su capacidad única para conectar con el público a través de enfoques narrativos profundos y trascendentales. Esta constancia y maestría cinematográfica subraya la importancia de los valores artísticos en el éxito de las películas, que van más allá de los aspectos económicos.
+
+En cuanto a los géneros, nuestra investigación revela patrones clave que definen las preferencias del público. El género **Crime** se destaca como uno de los más exitosos en términos de recaudación, lo que sugiere que el suspenso y el crimen siguen siendo temáticas universales de gran atracción. Por otro lado, el **Drama** resulta ser el género más abundante, lo que refleja una persistente producción y exploración de historias humanas profundas y complejas. Esto pone de relieve la importancia de la diversidad de géneros en la industria, que, aunque genera una mayor oferta para distintos públicos, muestra que ciertos géneros logran un mayor impacto económico.
+
+El análisis de las componentes principales también ha sido revelador: si bien la cuarta componente explica una fracción menor de la varianza, las tres primeras componentes, centradas principalmente en las variables económicas (recaudación y presupuesto), siguen dominando la estructura del éxito cinematográfico. Sin embargo, el entrelazamiento de estos factores económicos con los artísticos muestra que el cine es un campo en el que el éxito no solo depende de las cifras, sino también de los gustos, tendencias y expectativas cambiantes del público.
+
+
+#### Análisis temporal
+
+Un aspecto particularmente interesante ha sido la evolución de las variables clave a lo largo del tiempo. Al observar las series temporales, hemos identificado una tendencia al alza en las recaudaciones, especialmente en los últimos años, lo que podría estar vinculado con la globalización del cine, el impacto de las franquicias y la expansión de las plataformas de streaming. Este patrón refleja cómo los modelos de negocio en la industria cinematográfica se han adaptado a una creciente demanda global y a la diversificación del mercado. Sin embargo, lo que es especialmente notable es que la recaudación de las películas no sigue un patrón predecible, lo que confirma que la industria cinematográfica sigue siendo impredecible. Los modelos ARIMA, al ser aplicados a las predicciones, dejaron en evidencia que factores externos, como cambios socioculturales, eventos inesperados o estrenos sorpresa, siguen teniendo un impacto significativo en la recaudación de las películas, lo que convierte la predicción en un desafío más artístico que científico.
+
+
+#### Posibles extensiones
+
+Aunque este estudio ha cubierto aspectos clave como los géneros, los actores, la dirección y los aspectos económicos, hay varias áreas que podrían ser ampliadas en futuras investigaciones:
+
+1. <b>Impacto de las plataformas de distribución</b>: aunque se han analizado recaudaciones y presupuestos, el impacto de plataformas de streaming como Netflix, Amazon Prime, entre otras, no ha sido profundamente explorado. Estas plataformas han transformado el modelo de negocio del cine, por lo que sería interesante analizar cómo afectan tanto a la recaudación de películas en cines como a las que se estrenan directamente en estas plataformas.
+
+2. <b>Análisis de la crítica y la audiencia</b>: si bien la puntuación de IMDb ofrece un panorama de la recepción de las películas, un análisis más profundo de las diferencias entre las valoraciones de críticos profesionales y las opiniones del público podría aportar una visión más matizada. Estudiar reseñas en plataformas especializadas comparadas con la base de datos de IMDb podría enriquecer esta perspectiva.
+
+3. <b>Estrategias de marketing y su efecto en el rendimiento</b>: aunque se han analizado los factores financieros y artísticos, el marketing juega un rol crucial en el éxito de las películas. Estudiar cómo diferentes enfoques de marketing, como las campañas en redes sociales o los trailers, impactan la recepción y recaudación de las películas podría ofrecer nuevas perspectivas.
+
+4. <b>Diversidad en el cine</b>: un área que podría explorarse más a fondo es el impacto de la diversidad en el cine. Analizar cómo la representación de diversas etnias, géneros y orientaciones sexuales en los elencos y las historias afecta la recepción y la taquilla podría aportar una nueva dimensión al estudio de la relación entre contenido culturalmente inclusivo y éxito comercial.
+
+
+#### Conclusión general
+
+En resumen, este análisis ha ofrecido una visión más completa y matizada de la industria cinematográfica, integrando tanto los factores económicos como los artísticos y culturales que son fundamentales para el éxito de una película. Al combinar estos aspectos, hemos demostrado que el éxito cinematográfico no depende únicamente de los aspectos financieros, sino de una interacción compleja de elementos como los géneros, los actores y los directores. La utilización de herramientas estadísticas avanzadas ha permitido descubrir patrones que, aunque no siempre evidentes a simple vista, son esenciales para comprender la dinámica del cine como industria y como arte. Este proyecto no solo ha facilitado un entendimiento más profundo del cine contemporáneo, sino que también ha abierto puertas para futuras investigaciones que continúen desentrañando las fuerzas que modelan este fascinante mundo en constante evolución.
+
